@@ -187,11 +187,14 @@ export function DailyOrders() {
                   className="w-[150px]"
                   nameKey="totalOrders"
                   labelFormatter={(value) => {
-                    return new Date(value).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
+                    if (typeof value === "string" || typeof value === "number" || value instanceof Date) {
+                      return new Date(value).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    }
+                    return ""
                   }}
                 />
               }
