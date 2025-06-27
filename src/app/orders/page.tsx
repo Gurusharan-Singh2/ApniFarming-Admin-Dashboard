@@ -80,7 +80,7 @@ export default function OrdersComponent() {
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState("date")
 
-  const { data: orders = mockOrders } = useQuery({
+  const { data: orders = mockOrders } = useQuery<Order[]>({
     queryKey: ["orders"],
     queryFn: async () => mockOrders,
   })

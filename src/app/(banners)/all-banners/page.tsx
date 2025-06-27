@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import Image from 'next/image'
 
 export default function AllBannersPage() {
   const qc = useQueryClient()
@@ -112,7 +113,17 @@ export default function AllBannersPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {banners.map((b: any) => (
           <div key={b.id} className="border rounded shadow p-4 space-y-3">
-            <img src={b.image_path} alt={b.title} className="w-full h-40 object-cover rounded" />
+            
+<div className="relative w-full h-40 rounded overflow-hidden">
+  <Image
+    src={b.image_path}
+    alt={b.title}
+    fill
+    className="object-cover"
+    sizes="100vw"
+    priority // optional: improve LCP if above-the-fold
+  />
+</div>
             <div>
               <h2 className="font-bold text-lg">{b.title}</h2>
               {b.url && <p className="text-sm text-gray-500">Link: {b.url}</p>}
@@ -233,7 +244,16 @@ export default function AllBannersPage() {
 
                       <Input type="file" accept="image/*" onChange={handleImageUpload} />
                       {preview && (
-                        <img src={preview} className="w-full h-40 object-cover rounded" />
+                        <div className="relative w-full h-40 rounded overflow-hidden">
+                          <Image
+                            src={preview}
+                            alt="Preview"
+                            fill
+                            className="object-cover"
+                            sizes="100vw"
+                            priority // optional: improve LCP if above-the-fold
+                          />
+                        </div>
                       )}
 
                       <Button onClick={handleEdit} className="w-full">Update</Button>

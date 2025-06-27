@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import Image from "next/image"
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
@@ -175,13 +176,16 @@ const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
                         onChange={handleImageUpload}
                       />
                     </FormControl>
-                    {preview && (
-                      <img
-                        src={preview}
-                        alt="Preview"
-                        className="w-40 mt-2 rounded"
-                      />
-                    )}
+                   {preview && (
+  <Image
+    src={preview}
+    alt="Preview"
+    width={160}
+    height={160}
+    className="mt-2 rounded object-cover"
+    unoptimized
+  />
+)}
                     <FormMessage />
                   </FormItem>
                 )}

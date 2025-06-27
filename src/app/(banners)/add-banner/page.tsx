@@ -13,6 +13,7 @@ import {
   SelectItem
 } from '@/components/ui/select'
 import { toast } from 'react-toastify'
+import Image from 'next/image'
 
 export default function AddBannerPage() {
   const qc = useQueryClient()
@@ -170,9 +171,17 @@ export default function AddBannerPage() {
         <div>
           <label className="block mb-1 font-semibold">Banner Image</label>
           <Input type="file" accept="image/*" onChange={handleImageUpload} required />
-          {preview && (
-            <img src={preview} alt="Preview" className="mt-2 rounded w-full max-h-60 object-cover" />
-          )}
+        {preview && (
+  <Image
+    src={preview}
+    alt="Preview"
+    width={200} // Tailwind w-40 = 160px
+    height={200} // Tailwind h-40 = 160px
+    className="rounded object-cover mt-2"
+    unoptimized // required if preview is a base64 or blob
+  />
+)}
+
         </div>
 
       <Button

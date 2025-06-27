@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import axios from 'axios'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'react-toastify'
+import Image from 'next/image'
 
 interface Category {
   id: number
@@ -190,14 +191,18 @@ export default function AllCategoriesPage() {
             <Card key={cat.id}>
               <CardHeader className="relative">
                 <div className="flex flex-col items-center">
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="w-24 h-24 object-cover rounded-full mb-3"
-                    onError={(e) =>
-                      ((e.target as HTMLImageElement).src = '/placeholder.svg')
-                    }
-                  />
+                  <div className="relative w-24 h-24 mb-3 rounded-full overflow-hidden">
+    <Image
+      src={cat.image || "/placeholder.svg"}
+      alt={cat.name}
+      fill
+      className="object-cover rounded-full"
+      onError={(e) => {
+        const target = e.target as HTMLImageElement;
+        target.src = "/placeholder.svg";
+      }}
+    />
+  </div>
                   <CardTitle className="text-center">{cat.name}</CardTitle>
                   <CardDescription className="text-center">
                     {cat.product_count} products
@@ -236,11 +241,15 @@ export default function AllCategoriesPage() {
                             <Label>Image</Label>
                             <Input type="file" accept="image/*" onChange={handleImageChange} />
                             {imagePreview && (
-                              <img
-                                src={imagePreview}
-                                alt="Preview"
-                                className="w-20 h-20 rounded mt-2 object-cover border"
-                              />
+                              <div className="relative w-20 h-20 rounded mt-2 overflow-hidden border">
+                                <Image
+                                  src={imagePreview}
+                                  alt="Preview"
+                                  fill
+                                  className="object-cover"
+                                  unoptimized // ✅ Use this if `imagePreview` is a base64 string or local blob
+                                />
+                              </div>
                             )}
                           </div>
 

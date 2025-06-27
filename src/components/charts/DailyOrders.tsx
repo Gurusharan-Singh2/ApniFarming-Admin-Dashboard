@@ -123,8 +123,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function DailyOrders() {
-  const [activeChart] = React.useState<keyof typeof chartConfig>("dailyOrders")
-
+ 
   const total = React.useMemo(() => {
     return {
       dailyOrders: chartData.reduce((acc, curr) => acc + curr.totalOrders, 0),

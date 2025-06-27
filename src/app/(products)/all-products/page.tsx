@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm, useFieldArray } from "react-hook-form"
 import { useState } from "react"
+import Image from "next/image"
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
@@ -139,12 +140,14 @@ export default function AllProductsPage() {
                 {filteredProducts.map((product: any) => (
                   <div key={product.id} className="relative">
                     <Card className="p-4 rounded-xl border border-muted shadow hover:shadow-lg transition duration-300 flex flex-col justify-between gap-3.5 min-h-[400px]">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-30 object-cover rounded-lg mb-3"
-                        onError={(e) => ((e.target as HTMLImageElement).src = "/fallback.png")}
-                      />
+                    <Image
+  src={product.image || "/fallback.png"}
+  width={300}
+  height={300}
+  alt={product.name}
+  className="w-full h-30 object-cover rounded-lg mb-3"
+/>
+
                       <CardTitle className="text-xl font-semibold mb-1 truncate">{product.name}</CardTitle>
                       <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.tagline}</p>
                       <div className="text-sm space-y-1">
@@ -211,12 +214,24 @@ export default function AllProductsPage() {
                             {previewUrl ? (
                               <div className="space-y-2">
                                 <Label>Preview Image</Label>
-                                <img src={previewUrl} alt="Preview" className="w-full h-32 object-contain rounded-md border" />
+                               <Image
+  src={previewUrl}
+  alt="Preview"
+  width={128}
+  height={128}
+  className="w-full h-32 object-contain rounded-md border"
+/>
                               </div>
                             ) : selectedProduct?.image && (
                               <div className="space-y-2">
                                 <Label>Current Image</Label>
-                                <img src={selectedProduct.image} alt="Current" className="w-full h-32 object-contain rounded-md border" />
+                                <Image
+                                  src={selectedProduct.image}
+                                  alt="Current"
+                                  width={128}
+                                  height={128}
+                                  className="w-full h-32 object-contain rounded-md border"
+                                />
                               </div>
                             )}
 

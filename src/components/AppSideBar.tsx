@@ -1,8 +1,8 @@
 
-import { Home, Inbox, CalendarSearch, Search, Settings, User2, ChevronUp, Plus, Projector, ChevronDown, ListOrderedIcon, CastleIcon, GalleryVertical } from 'lucide-react'
+import { Home, Inbox, CalendarSearch, Search, Settings, User2, ChevronUp, Plus, Projector, ChevronDown, ListOrderedIcon, CastleIcon } from 'lucide-react'
 
 import React from 'react'
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupAction, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from './ui/sidebar'
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from './ui/sidebar'
 import Link from 'next/link'
 import Image from 'next/image'
 import logo from '../../public/logo.png'

@@ -15,6 +15,7 @@ import { toast } from 'react-toastify'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 
 type FormInput = {
   name: string
@@ -115,13 +116,18 @@ export default function AddCategoryPage() {
                 {...register('image', { required: true })}
                 onChange={handleImageChange}
               />
-              {preview && (
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="mt-2 w-32 h-32 rounded object-cover border"
-                />
-              )}
+              
+{preview && (
+  <div className="relative mt-2 w-32 h-32 rounded overflow-hidden border">
+    <Image
+      src={preview}
+      alt="Preview"
+      fill
+      className="object-cover rounded"
+      unoptimized // ✅ Use this if `preview` is a base64 string or local blob
+    />
+  </div>
+)}
             </div>
 
             <Button type="submit" disabled={isSubmitting}>
