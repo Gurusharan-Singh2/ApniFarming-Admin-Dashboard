@@ -14,8 +14,10 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'react-toastify'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 export default function AddBannerPage() {
+  const router = useRouter()
   const qc = useQueryClient()
 
   const [title, setTitle] = useState('')
@@ -71,6 +73,7 @@ export default function AddBannerPage() {
       setPreview('')
       setSortOrder(0)
       qc.invalidateQueries({ queryKey: ['banners'] })
+      router.push('/all-banners')
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to add banner')
   })
@@ -134,7 +137,7 @@ export default function AddBannerPage() {
             <Input
               value={customLink}
               onChange={e => setCustomLink(e.target.value)}
-              type="url"
+              type="text"
               required
             />
           </div>

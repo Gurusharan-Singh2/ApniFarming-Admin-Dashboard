@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { useForm, useFieldArray } from "react-hook-form"
 import { useState } from "react"
 import Image from "next/image"
+import { Loader } from "@/components/Loader"
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
@@ -108,14 +109,21 @@ export default function AllProductsPage() {
         : b.name.localeCompare(a.name)
     })
 
+    if (deleteMutation.isPending) {
+      return <Loader />
+    }
+    if (updateMutation.isPending) {
+      return <Loader />
+    }
+
   return (
-    <main className="p-6 max-w-[1600px] mx-auto">
-      <Card className="rounded-2xl shadow-lg">
+    <main className="p-6 max-w-[1600px] min-h-screen mx-auto">
+      <Card className="rounded-2xl shadow-lg ">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary">All Products</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 mb-4 ">
             <Input
               placeholder="Search by name or tagline..."
               value={searchQuery}
@@ -131,12 +139,12 @@ export default function AllProductsPage() {
           </div>
 
           {isLoading ? (
-            <p className="text-gray-500">Loading...</p>
+            <Loader/>
           ) : filteredProducts.length === 0 ? (
             <p className="text-gray-500">No products found.</p>
           ) : (
-            <ScrollArea className="max-h-[80vh]">
-              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <ScrollArea className="min-h-screen">
+              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ">
                 {filteredProducts.map((product: any) => (
                   <div key={product.id} className="relative">
                     <Card className="p-4 rounded-xl border border-muted shadow hover:shadow-lg transition duration-300 flex flex-col justify-between gap-3.5 min-h-[400px]">

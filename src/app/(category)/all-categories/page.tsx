@@ -16,6 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'react-toastify'
 import Image from 'next/image'
+import { Loader } from '@/components/Loader'
 
 interface Category {
   id: number
@@ -145,6 +146,9 @@ export default function AllCategoriesPage() {
       reader.readAsDataURL(file)
     }
   }
+  if(updateCategory.isPending || deleteCategory.isPending) {
+    return <Loader />
+  }
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-8">
@@ -164,18 +168,7 @@ export default function AllCategoriesPage() {
       />
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <Skeleton className="h-24 w-24 rounded-full mx-auto mb-3" />
-                <Skeleton className="h-6 w-3/4 mx-auto mb-2" />
-                <Skeleton className="h-4 w-1/2 mx-auto mb-3" />
-                <Skeleton className="h-8 w-24 mx-auto" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Loader/>
       ) : isError ? (
         <div className="text-center py-8">
           <p className="text-red-500 mb-4">Failed to load categories</p>

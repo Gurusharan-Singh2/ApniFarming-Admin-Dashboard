@@ -58,12 +58,12 @@ export default async function RootLayout({
         <AppSideBar />
         <main className="w-full">
           <NavBar />
-          <div className="px-4">
+          
          <ReactQueryProvider>
   {children}
    <ToastContainer position="top-right" autoClose={3000} />
 </ReactQueryProvider>
-          </div>
+          
          
         </main>
           </SidebarProvider>

@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 type FormInput = {
   name: string
@@ -24,6 +25,7 @@ type FormInput = {
 }
 
 export default function AddCategoryPage() {
+  const router = useRouter();
   const queryClient = useQueryClient()
   const [preview, setPreview] = useState<string>('')
 
@@ -46,6 +48,7 @@ export default function AddCategoryPage() {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       reset()
       setPreview('')
+      router.push('/all-categories')
     },
     onError: (err: any) => {
       const message =
@@ -130,8 +133,8 @@ export default function AddCategoryPage() {
 )}
             </div>
 
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Add Category'}
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? 'Submitting...' : 'Add Category'}
             </Button>
           </form>
         </CardContent>

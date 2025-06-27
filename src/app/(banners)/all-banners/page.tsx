@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 
+import {Loader} from '@/components/Loader'
+
 export default function AllBannersPage() {
   const qc = useQueryClient()
 
@@ -104,7 +106,11 @@ export default function AllBannersPage() {
     setEditData(null)
   }
 
-  if (isLoading) return <p className="text-center mt-10">Loading banners...</p>
+  if (isLoading) return <Loader/>
+
+  if (updateBanner.isPending || deleteBanner.isPending) {
+    return <Loader/>;
+  }
 
   return (
     <main className="max-w-6xl mx-auto p-6">
@@ -273,5 +279,5 @@ export default function AllBannersPage() {
         ))}
       </div>
     </main>
-  )
-}
+      
+    ) }

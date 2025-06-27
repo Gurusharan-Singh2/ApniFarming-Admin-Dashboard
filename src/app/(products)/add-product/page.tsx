@@ -6,6 +6,8 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useMutation, useQuery } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+
 import {
   Card,
   CardContent,
@@ -31,6 +33,7 @@ import {
 } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import Image from "next/image"
+import { toast } from "react-toastify"
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
@@ -56,31 +59,15 @@ const formSchema = z.object({
 
 export default function AddProductPage() {
   const [preview, setPreview] = useState<string | null>(null)
-const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
+  const router = useRouter()
 
+  const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
       const res = await axios.get(`${BACKEND}/api/categories`)
       return res.data
-    },
-  })
-
-  const addProduct = async (data: any) => {
-    const res = await axios.post(`${BACKEND}/api/admin/products`, data)
-    return res.data
-  }
-
-  const mutation = useMutation({
-    mutationFn: addProduct,
-    onSuccess: () => {
-      alert("Product uploaded successfully!")
-      form.reset()
-      setPreview(null)
-    },
-    onError: (err: any) => {
-      alert("Upload failed: " + (err.response?.data?.message || err.message))
     },
   })
 
@@ -108,6 +95,24 @@ const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "sizes",
+  })
+
+  const addProduct = async (data: any) => {
+    const res = await axios.post(`${BACKEND}/api/admin/products`, data)
+    return res.data
+  }
+
+  const mutation = useMutation({
+    mutationFn: addProduct,
+    onSuccess: () => {
+      toast.success("Product uploaded successfully!")
+      form.reset()
+      setPreview(null)
+      router.push("/all-products")
+    },
+    onError: (err: any) => {
+      alert("Upload failed: " + (err.response?.data?.message || err.message))
+    },
   })
 
   const handleImageUpload = (e: any) => {
@@ -166,7 +171,7 @@ const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
               <FormField
                 control={form.control}
                 name="image"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel>Image</FormLabel>
                     <FormControl>
@@ -176,16 +181,16 @@ const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
                         onChange={handleImageUpload}
                       />
                     </FormControl>
-                   {preview && (
-  <Image
-    src={preview}
-    alt="Preview"
-    width={160}
-    height={160}
-    className="mt-2 rounded object-cover"
-    unoptimized
-  />
-)}
+                    {preview && (
+                      <Image
+                        src={preview}
+                        alt="Preview"
+                        width={160}
+                        height={160}
+                        className="mt-2 rounded object-cover"
+                        unoptimized
+                      />
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -266,63 +271,78 @@ const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
                   {fields.map((fieldItem, index) => (
                     <div
                       key={fieldItem.id}
-                      className="flex gap-2 items-start flex-wrap"
+                      className="flex gap-4 items-end flex-wrap border-b pb-4"
                     >
-                      {/* Option dropdown */}
-                      <Select
-                        defaultValue={form.getValues(`sizes.${index}.option`)}
-                        onValueChange={(val) =>
-                          form.setValue(`sizes.${index}.option`, val)
-                        }
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {variantOptions.map((opt) => (
-                            <SelectItem key={opt} value={opt}>
-                              {opt}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium">Option</label>
+                        <Select
+                          defaultValue={form.getValues(`sizes.${index}.option`)}
+                          onValueChange={(val) =>
+                            form.setValue(`sizes.${index}.option`, val)
+                          }
+                        >
+                          <SelectTrigger className="w-28">
+                            <SelectValue placeholder="Option" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {variantOptions.map((opt) => (
+                              <SelectItem key={opt} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                      <Input
-                        {...form.register(`sizes.${index}.value`)}
-                        placeholder="Value"
-                        className="w-24"
-                      />
-                      <Input
-                        type="number"
-                        {...form.register(`sizes.${index}.costPrice`)}
-                        placeholder="Cost"
-                        className="w-24"
-                      />
-                      <Input
-                        type="number"
-                        {...form.register(`sizes.${index}.sellPrice`)}
-                        placeholder="Sell"
-                        className="w-24"
-                      />
-                      <Select
-                        defaultValue={form
-                          .getValues(`sizes.${index}.in_Stock`)
-                          .toString()}
-                        onValueChange={(val) =>
-                          form.setValue(
-                            `sizes.${index}.in_Stock`,
-                            val === "true"
-                          )
-                        }
-                      >
-                        <SelectTrigger className="w-24">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="true">In</SelectItem>
-                          <SelectItem value="false">Out</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium">Value</label>
+                        <Input
+                          {...form.register(`sizes.${index}.value`)}
+                          className="w-20"
+                        />
+                      </div>
+
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium">Cost Price</label>
+                        <Input
+                          type="number"
+                          {...form.register(`sizes.${index}.costPrice`)}
+                          className="w-28"
+                        />
+                      </div>
+
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium">Sell Price</label>
+                        <Input
+                          type="number"
+                          {...form.register(`sizes.${index}.sellPrice`)}
+                          className="w-28"
+                        />
+                      </div>
+
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium">Stock</label>
+                        <Select
+                          defaultValue={form
+                            .getValues(`sizes.${index}.in_Stock`)
+                            .toString()}
+                          onValueChange={(val) =>
+                            form.setValue(
+                              `sizes.${index}.in_Stock`,
+                              val === "true"
+                            )
+                          }
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="true">In</SelectItem>
+                            <SelectItem value="false">Out</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       {index > 0 && (
                         <Button
                           type="button"
@@ -335,6 +355,7 @@ const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
                     </div>
                   ))}
                 </ScrollArea>
+
                 <Button
                   type="button"
                   variant="outline"
@@ -352,8 +373,12 @@ const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
                 </Button>
               </div>
 
-              <Button type="submit" className="w-full">
-                Submit
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={mutation.isPending}
+              >
+                {mutation.isPending ? "Submitting..." : "Submit"}
               </Button>
             </form>
           </Form>
