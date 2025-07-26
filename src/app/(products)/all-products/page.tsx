@@ -17,6 +17,7 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { useState } from "react"
 import Image from "next/image"
 import { Loader } from "@/components/Loader"
+import { error, log } from "console"
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
@@ -30,7 +31,8 @@ const deleteProduct = async (id: string) => {
 }
 
 const updateProduct = async (updatedProduct: any) => {
-  await axios.put(`${BACKEND}/api/admin/products/${updatedProduct.id}`, updatedProduct)
+const res=  await axios.put(`${BACKEND}/api/admin/products/${updatedProduct.id}`, updatedProduct)
+return res.data;
 }
 
 export default function AllProductsPage() {
@@ -55,9 +57,16 @@ export default function AllProductsPage() {
 
   const updateMutation = useMutation({
     mutationFn: updateProduct,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log(data);
+      
       queryClient.invalidateQueries({ queryKey: ["products"] })
     },
+   
+    onError:(error)=>{
+      console.log(error);
+      
+    }
   })
 
   const { register, handleSubmit, reset, control } = useForm()
@@ -112,9 +121,7 @@ export default function AllProductsPage() {
     if (deleteMutation.isPending) {
       return <Loader />
     }
-    if (updateMutation.isPending) {
-      return <Loader />
-    }
+    
 
   return (
     <main className="p-6 max-w-[1600px] min-h-screen mx-auto">
@@ -254,7 +261,7 @@ export default function AllProductsPage() {
                                 <div key={field.id} className="grid grid-cols-4 gap-2">
   <Input
     placeholder="Size"
-    {...register(`sizes.${index}.size`, { required: true })}
+    {...register(`sizes.${index}.value`, { required: true })}
   />
 
   <select
