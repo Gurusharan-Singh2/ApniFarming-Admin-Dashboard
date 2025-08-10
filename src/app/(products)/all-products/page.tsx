@@ -17,7 +17,7 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { useState } from "react"
 import Image from "next/image"
 import { Loader } from "@/components/Loader"
-import { error, log } from "console"
+import { toast } from "react-toastify"
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
@@ -31,8 +31,8 @@ const deleteProduct = async (id: string) => {
 }
 
 const updateProduct = async (updatedProduct: any) => {
-const res=  await axios.put(`${BACKEND}/api/admin/products/${updatedProduct.id}`, updatedProduct)
-return res.data;
+  const res = await axios.put(`${BACKEND}/api/admin/products/${updatedProduct.id}`, updatedProduct)
+  return res.data
 }
 
 export default function AllProductsPage() {
@@ -50,49 +50,47 @@ export default function AllProductsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] })
-    },
+    onSuccess: () =>{ queryClient.invalidateQueries({ queryKey: ["products"] })
+  toast.success("Product deleted successfully !!!")},
   })
 
   const updateMutation = useMutation({
     mutationFn: updateProduct,
-    onSuccess: (data) => {
-      console.log(data);
-      
-      queryClient.invalidateQueries({ queryKey: ["products"] })
-    },
-   
-    onError:(error)=>{
-      console.log(error);
-      
-    }
+   onSuccess: () =>{ queryClient.invalidateQueries({ queryKey: ["products"] })
+  toast.success("Product Updated successfully !!!")},
+    onError: (error) => console.error(error),
   })
 
-  const { register, handleSubmit, reset, control } = useForm()
+  const { register, handleSubmit, reset, control } = useForm({
+    defaultValues: {
+      title: "",
+      tagline: "",
+      description: "",
+      sizes: [{ size: "", option: "", costPrice: 0, sellPrice: 0, maxOrder: null }],
+      categoryId: "",
+    },
+  })
+
   const { fields, append } = useFieldArray({
     control,
     name: "sizes",
   })
 
-  const toBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
+  const toBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
       reader.readAsDataURL(file)
       reader.onload = () => resolve(reader.result as string)
-      reader.onerror = (error) => reject(error)
+      reader.onerror = reject
     })
 
   const onSubmit = async (data: any) => {
     if (imageFile) {
-      const base64 = await toBase64(imageFile)
-      data.image = base64
+      data.image = await toBase64(imageFile)
     }
-
     data.id = selectedProduct?.id
-    data.categoryId = selectedProduct?.categoryId // Keep original category
+    data.categoryId = selectedProduct?.categoryId
     updateMutation.mutate(data)
-
     setSelectedProduct(null)
     reset()
     setImageFile(null)
@@ -108,65 +106,58 @@ export default function AllProductsPage() {
   }
 
   const filteredProducts = products
-    .filter((product: any) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.tagline.toLowerCase().includes(searchQuery.toLowerCase())
+    .filter((p: any) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.tagline.toLowerCase().includes(searchQuery.toLowerCase())
     )
-    .sort((a: any, b: any) => {
-      return sortOrder === "asc"
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name)
-    })
+    .sort((a: any, b: any) =>
+      sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+    )
 
-    if (deleteMutation.isPending) {
-      return <Loader />
-    }
-    
+  if (deleteMutation.isPending || updateMutation.isPending) {
+    return <Loader />
+  }
 
   return (
     <main className="p-6 max-w-[1600px] min-h-screen mx-auto">
-      <Card className="rounded-2xl shadow-lg ">
+      <Card className="rounded-2xl shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary">All Products</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4 ">
+          <div className="flex items-center gap-4 mb-4">
             <Input
               placeholder="Search by name or tagline..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="max-w-sm"
             />
-            <Button
-              variant="outline"
-              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            >
+            <Button variant="outline" onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}>
               Sort by Name ({sortOrder === "asc" ? "A-Z" : "Z-A"})
             </Button>
           </div>
 
           {isLoading ? (
-            <Loader/>
+            <Loader />
           ) : filteredProducts.length === 0 ? (
             <p className="text-gray-500">No products found.</p>
           ) : (
             <ScrollArea className="min-h-screen">
-              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ">
+              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {filteredProducts.map((product: any) => (
                   <div key={product.id} className="relative">
                     <Card className="p-4 rounded-xl border border-muted shadow hover:shadow-lg transition duration-300 flex flex-col justify-between gap-3.5 min-h-[400px]">
-                    <Image
-  src={product.image || "/fallback.png"}
-  width={300}
-  height={300}
-  alt={product.name}
-  className="w-full h-30 object-cover rounded-lg mb-3"
-/>
-
+                      <Image
+                        src={product.image || "/fallback.png"}
+                        width={300}
+                        height={300}
+                        alt={product.name}
+                        className="w-full h-full object-cover rounded-lg mb-3"
+                      />
                       <CardTitle className="text-xl font-semibold mb-1 truncate">{product.name}</CardTitle>
                       <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.tagline}</p>
                       <div className="text-sm space-y-1">
-                        {product.sizes?.length > 0 ? (
+                        {product.sizes?.length ? (
                           product.sizes.map((size: any, i: number) => (
                             <div key={i} className="flex items-center justify-between">
                               <span className="font-medium text-muted-foreground">{size.size} {size.option}</span>
@@ -204,7 +195,14 @@ export default function AllProductsPage() {
                               reset({
                                 title: product.name,
                                 tagline: product.tagline,
-                                sizes: product.sizes || [],
+                                description: product.description || "",
+                                sizes: (product.sizes || []).map((s: any) => ({
+                                  size: s.size || "",
+                                  option: s.option?.toLowerCase() || "",
+                                  costPrice: s.costPrice ?? 0,
+                                  sellPrice: s.sellPrice ?? 0,
+                                  maxOrder: s.maxOrder || null,
+                                })),
                                 categoryId: product.categoryId,
                               })
                             }}
@@ -212,92 +210,129 @@ export default function AllProductsPage() {
                             Edit
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px] rounded-xl">
+                        <DialogContent className="sm:max-w-[650px] rounded-xl">
                           <DialogHeader>
                             <DialogTitle>Edit Product</DialogTitle>
                           </DialogHeader>
-                          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
-                            <div className="space-y-2">
-                              <Label>Title</Label>
-                              <Input {...register("title", { required: true })} />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Tagline</Label>
-                              <Input {...register("tagline", { required: true })} />
-                            </div>
 
-                            {previewUrl ? (
-                              <div className="space-y-2">
-                                <Label>Preview Image</Label>
-                               <Image
-  src={previewUrl}
-  alt="Preview"
-  width={128}
-  height={128}
-  className="w-full h-32 object-contain rounded-md border"
-/>
+                          <ScrollArea className="max-h-[80vh] pr-2">
+                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
+                              <div>
+                                <Label>Title</Label>
+                                <Input {...register("title", { required: true })} />
                               </div>
-                            ) : selectedProduct?.image && (
-                              <div className="space-y-2">
-                                <Label>Current Image</Label>
-                                <Image
-                                  src={selectedProduct.image}
-                                  alt="Current"
-                                  width={128}
-                                  height={128}
-                                  className="w-full h-32 object-contain rounded-md border"
+                              <div>
+                                <Label>Tagline</Label>
+                                <Input {...register("tagline", { required: true })} />
+                              </div>
+                              <div>
+                                <Label>Description</Label>
+                                <textarea
+                                  {...register("description")}
+                                  className="w-full p-2 border border-gray-300 rounded-md"
+                                  rows={3}
                                 />
                               </div>
-                            )}
 
-                            <div className="space-y-2">
-                              <Label>Upload New Image</Label>
-                              <Input type="file" accept="image/*" onChange={handleImageChange} />
-                            </div>
+                              {previewUrl ? (
+                                <div>
+                                  <Label>Preview Image</Label>
+                                  <Image
+                                    src={previewUrl}
+                                    alt="Preview"
+                                    width={128}
+                                    height={128}
+                                    className="w-full h-32 object-contain rounded-md border"
+                                  />
+                                </div>
+                              ) : selectedProduct?.image && (
+                                <div>
+                                  <Label>Current Image</Label>
+                                  <Image
+                                    src={selectedProduct.image}
+                                    alt="Current"
+                                    width={128}
+                                    height={128}
+                                    className="w-full h-32 object-contain rounded-md border"
+                                  />
+                                </div>
+                              )}
 
-                            <div className="space-y-2">
-                              <Label>Sizes</Label>
-                              {fields.map((field, index) => (
-                                <div key={field.id} className="grid grid-cols-4 gap-2">
-  <Input
-    placeholder="Size"
-    {...register(`sizes.${index}.value`, { required: true })}
-  />
+                              <div>
+                                <Label>Upload New Image</Label>
+                                <Input type="file" accept="image/*" onChange={handleImageChange} />
+                              </div>
 
-  <select
-    {...register(`sizes.${index}.option`, { required: true })}
-    className="p-2 border border-gray-300 bg-slate-800 text-white  rounded-md"
-  >
-    <option className="bg-slate-800 text-white" value="">Select Unit</option>
-    <option className="bg-slate-800 text-white" value="kg">kg</option>
-    <option className="bg-slate-800 text-white" value="gram">gram</option>
-    <option className="bg-slate-800 text-white" value="litre">litre</option>
-    <option className="bg-slate-800 text-white" value="ml">ml</option>
-    <option className="bg-slate-800 text-white" value="pcs">pcs</option>
-  </select>
+                              <div className="space-y-2">
+                                <Label>Sizes</Label>
+                                {fields.map((field, index) => (
+                                  <div key={field.id} className="flex flex-wrap gap-2">
+                                    <div className="flex-1 min-w-[80px]">
+                                      <Label htmlFor={`sizes.${index}.size`}>Size</Label>
+                                      <Input
+                                        id={`sizes.${index}.size`}
+                                        placeholder="Size"
+                                        {...register(`sizes.${index}.size`, { required: true })}
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-[80px]">
+                                      <Label htmlFor={`sizes.${index}.option`}>Unit</Label>
+                                      <select
+                                        id={`sizes.${index}.option`}
+                                        {...register(`sizes.${index}.option`, { required: true })}
+                                        className="p-2 border border-gray-300 bg-slate-100 text-black rounded-md w-full"
+                                      >
+                                        <option value="">Select Unit</option>
+                                        <option value="kg">kg</option>
+                                        <option value="gram">gram</option>
+                                        <option value="litre">litre</option>
+                                        <option value="ml">ml</option>
+                                        <option value="pcs">pcs</option>
+                                      </select>
+                                    </div>
+                                    <div className="flex-1 min-w-[100px]">
+                                      <Label htmlFor={`sizes.${index}.costPrice`}>Cost Price</Label>
+                                      <Input
+                                        id={`sizes.${index}.costPrice`}
+                                        placeholder="Cost Price"
+                                        type="number"
+                                        {...register(`sizes.${index}.costPrice`, { required: true })}
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-[100px]">
+                                      <Label htmlFor={`sizes.${index}.sellPrice`}>Sell Price</Label>
+                                      <Input
+                                        id={`sizes.${index}.sellPrice`}
+                                        placeholder="Sell Price"
+                                        type="number"
+                                        {...register(`sizes.${index}.sellPrice`, { required: true })}
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-[100px]">
+                                      <Label htmlFor={`sizes.${index}.maxOrder`}>Max Order</Label>
+                                      <Input
+                                        id={`sizes.${index}.maxOrder`}
+                                        placeholder="Max Order"
+                                        type="number"
+                                        {...register(`sizes.${index}.maxOrder`)}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => append({ size: "", option: "", costPrice: 0, sellPrice: 0, maxOrder: null })}
+                                >
+                                  Add Size
+                                </Button>
+                              </div>
 
-  <Input
-    placeholder="Cost Price"
-    type="number"
-    {...register(`sizes.${index}.costPrice`, { required: true })}
-  />
-  <Input
-    placeholder="Sell Price"
-    type="number"
-    {...register(`sizes.${index}.sellPrice`, { required: true })}
-  />
-</div>
-
-                              ))}
-                              <Button type="button" variant="outline" onClick={() => append({ size: "", option: "", costPrice: 0, sellPrice: 0 })}>
-                                Add Size
+                              <Button type="submit" className="w-full mt-4" disabled={updateMutation.isPending}>
+                                {updateMutation.isPending ? "Updating..." : "Update Product"}
                               </Button>
-                            </div>
-
-                            <Button type="submit" className="w-full mt-4" disabled={updateMutation.isPending}>
-                              {updateMutation.isPending ? "Updating..." : "Update Product"}
-                            </Button>
-                          </form>
+                            </form>
+                          </ScrollArea>
                         </DialogContent>
                       </Dialog>
                     </div>
