@@ -25,7 +25,7 @@ export default function AddProductPage() {
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
-      const res = await axios.get(`${BACKEND}/api/categories`)
+      const res = await axios.get(`https://api.apnifarming.com/user/categories/getAllCategories.php`)
       return res.data
     },
   })

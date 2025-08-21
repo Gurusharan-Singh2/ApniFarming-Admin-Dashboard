@@ -22,7 +22,7 @@ import { toast } from "react-toastify"
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
 const fetchProducts = async () => {
-  const res = await axios.get(`${BACKEND}/api/admin/products`)
+  const res = await axios.get(`https://api.apnifarming.com/user/products/getAllProducts.php`)
   return res.data
 }
 

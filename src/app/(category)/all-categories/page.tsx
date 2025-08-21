@@ -62,7 +62,7 @@ export default function AllCategoriesPage() {
   const { data: categories = [], isLoading, isError } = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: async () => {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND}/api/admin/categories`)
+      const res = await axios.get(`https://api.apnifarming.com/user/categories/getAllCategories.php`)
       return res.data
     },
   })

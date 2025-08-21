@@ -152,6 +152,31 @@ const AppSideBar = () => {
        
       </SidebarGroup>
     </Collapsible>
+    <Collapsible defaultOpen className="group/collapsible">
+     <SidebarGroup>
+        <SidebarGroupLabel asChild>
+           <CollapsibleTrigger>
+           Manage Orders
+            <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+          </CollapsibleTrigger>
+          </SidebarGroupLabel>
+       <CollapsibleContent>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+                
+                <SidebarMenuButton asChild><Link href={'/create-order'}><Plus/> Create new Order</Link></SidebarMenuButton>
+
+
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+       
+      
+       </CollapsibleContent>
+       
+      </SidebarGroup>
+    </Collapsible>
      
 
     </SidebarContent>
