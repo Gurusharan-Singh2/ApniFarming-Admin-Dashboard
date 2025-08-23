@@ -64,7 +64,7 @@ const DeliverySlotSelector = ({ slots = [], selectedDate, selectedSlotId, setSel
             <button
               key={slot.id}
               onClick={() => setSelectedSlotId(slot.id)}
-              className={`rounded-xl px-4 py-3 border-2 max-w-[30%] text-left transition-colors duration-200 ${
+              className={`rounded-xl px-4 py-3 border-2 max-w-[50%] text-left transition-colors duration-200 ${
                 selectedSlotId === slot.id
                   ? 'border-green-600 bg-green-50'
                   : 'border-gray-200 bg-white hover:border-green-400'

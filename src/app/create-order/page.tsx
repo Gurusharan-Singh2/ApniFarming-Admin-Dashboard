@@ -24,7 +24,8 @@ import { Trash2, Edit } from "lucide-react";
 import Products from "@/components/Products";
 import useCartStore from "@/Store/Cart";
 import Checkout from "@/components/Checkout";
-
+import CartIconWithBadge from "@/components/CartIcon";
+import CategoryItem from "@/components/ItemCategory";
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND;
 
 interface Customer {
@@ -128,17 +129,17 @@ const deleteAddress = async ({ uid, id }: { uid: string; id: string }) => {
 // -------------------- Component --------------------
 const Page = () => {
   const queryClient = useQueryClient();
-
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
-  ); // full object
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(""); // just id
-const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  );
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 400);
   const [addressSelectOpen, setAddressSelectOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [checkout, setCheckout] = useState(false);
+  const [categoryId, setCategoryId] = useState(0);
 
   const [newCustomer, setNewCustomer] = useState<NewCustomer>({
     first_name: "",
@@ -163,7 +164,7 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
     useQuery<Customer[]>({
       queryKey: ["customers-all"],
       queryFn: fetchAllCustomers,
-      enabled: !debouncedSearch, // only fetch if no search
+      enabled: !debouncedSearch,
     });
 
   const {
@@ -185,17 +186,14 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
         created,
         ...old,
       ]);
-
       setSelectedCustomer(created);
       setSelectedCustomerId(created.id);
-
       setNewCustomer({ first_name: "", phone: "" });
       toast.success("Customer created!");
       setIsCreateDialogOpen(false);
       setIsAddressDialogOpen(true);
       setAddressSelectOpen(true);
     },
-
     onError: (err: any) =>
       toast.error(err?.response?.data?.message || "Failed to create customer"),
   });
@@ -210,22 +208,17 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
 
   const { mutate: addAddress, isPending: creatingAddress } = useMutation({
     mutationFn: createAddress,
-  onSuccess: (res) => {
-  queryClient.invalidateQueries({
-    queryKey: ["addresses", selectedCustomerId],
-  });
-
-  const newAddr = res?.data; // should include the full address object
-  if (newAddr) {
-    setSelectedAddress(newAddr);
-  }
-
-  resetAddressForm();
-  setIsAddressDialogOpen(false);
-  setAddressSelectOpen(true);
-  toast.success("Address added!");
-}
-,
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({
+        queryKey: ["addresses", selectedCustomerId],
+      });
+      const newAddr = res?.data;
+      if (newAddr) setSelectedAddress(newAddr);
+      resetAddressForm();
+      setIsAddressDialogOpen(false);
+      setAddressSelectOpen(true);
+      toast.success("Address added!");
+    },
     onError: (err: any) =>
       toast.error(err?.response?.data?.message || "Failed to add address"),
   });
@@ -256,7 +249,6 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
       toast.error(err?.response?.data?.message || "Failed to delete address"),
   });
 
-  // -------------------- Handlers --------------------
   const handleCreateCustomer = () => {
     if (!newCustomer.first_name.trim() || !newCustomer.phone.trim()) {
       toast.error("First name & phone required");
@@ -315,8 +307,6 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
     }
   }, [debouncedSearch]);
 
-  
-  // ------------------ Store ------------------
   const { finalAmount, cart } = useCartStore();
 
   const handleCheckoutClick = () => {
@@ -335,18 +325,12 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
     setCheckout(true);
   };
 
-  // Auto-open address dialog if customer has no addresses
   useEffect(() => {
-    if (
-      selectedCustomerId &&
-      !isAddressesLoading &&
-      addresses.length === 0
-    ) {
+    if (selectedCustomerId && !isAddressesLoading && addresses.length === 0) {
       setIsAddressDialogOpen(true);
     }
   }, [selectedCustomerId, addresses, isAddressesLoading]);
 
-  // -------------------- UI --------------------
   if (checkout) {
     return (
       <Checkout
@@ -358,16 +342,16 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   }
 
   return (
-    <main className="p-6 max-w-[1600px] min-h-screen mx-auto">
-      <h1 className="text-base font-semibold mb-4">Create New Order</h1>
+    <main className="p-4 md:p-6 max-w-[1600px] min-h-screen mx-auto">
+      <h1 className="text-lg md:text-xl font-semibold mb-4">Create New Order</h1>
 
       {/* Search + Select Customer */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 flex-wrap">
         <Input
           placeholder="Search customer by name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-[250px]"
+          className="w-full sm:w-[250px]"
         />
 
         <Select
@@ -383,7 +367,7 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
           value={selectedCustomerId}
           disabled={isAllCustomersLoading || isSearchedCustomersLoading}
         >
-          <SelectTrigger className="w-[300px]">
+          <SelectTrigger className="w-full sm:w-[300px]">
             <SelectValue placeholder="Select customer" />
           </SelectTrigger>
           <SelectContent>
@@ -403,7 +387,9 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
         {/* Add New Customer */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline">Add Customer</Button>
+            <Button variant="outline" className="w-full sm:w-auto">
+              Add Customer
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -444,188 +430,190 @@ const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
             </div>
           </DialogContent>
         </Dialog>
+
+        <CartIconWithBadge handleCheckoutClick={handleCheckoutClick} />
       </div>
 
       {/* Address Selector */}
       {selectedCustomerId && (
-        <div className="space-y-4 mb-2.5">
-          <div className="flex items-center gap-4">
-            <h1>Select Address</h1>
-        <Select
-  open={addressSelectOpen}
-  onOpenChange={setAddressSelectOpen}
-  onValueChange={(val) => {
-    const addr = addresses.find((a) => a.id === val) || null;
-    setSelectedAddress(addr);
-  }}
-  value={selectedAddress?.id || ""}
-  disabled={isAddressesLoading}
->
-  <SelectTrigger className="w-[300px]">
-    <SelectValue
-      placeholder={isAddressesLoading ? "Loading..." : "Select an address"}
-    />
-  </SelectTrigger>
-  <SelectContent>
-    {addresses.map((a) => (
-      <SelectItem key={a.id} value={a.id}>
-        {a.pincode} - {a.street_address}, {a.city}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
+        <div className="space-y-4 mb-2.5 flex flex-col sm:flex-row sm:items-center gap-4 flex-wrap">
+          <h1 className="w-full sm:w-auto">Select Address</h1>
+          <Select
+            open={addressSelectOpen}
+            onOpenChange={setAddressSelectOpen}
+            onValueChange={(val) => {
+              const addr = addresses.find((a) => a.id === val) || null;
+              setSelectedAddress(addr);
+            }}
+            value={selectedAddress?.id || ""}
+            disabled={isAddressesLoading}
+          >
+            <SelectTrigger className="w-full sm:w-[300px]">
+              <SelectValue
+                placeholder={isAddressesLoading ? "Loading..." : "Select an address"}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {addresses.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.pincode} - {a.street_address}, {a.city}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
+          <Dialog
+            open={isAddressDialogOpen}
+            onOpenChange={(open) => {
+              setIsAddressDialogOpen(open);
+              if (!open) resetAddressForm();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                Manage Addresses
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[85vh] overflow-y-auto space-y-6 pr-2">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingAddressId ? "Edit Address" : "Add Address"}
+                </DialogTitle>
+              </DialogHeader>
 
-            {/* Manage Addresses */}
-            <Dialog
-              open={isAddressDialogOpen}
-              onOpenChange={(open) => {
-                setIsAddressDialogOpen(open);
-                if (!open) resetAddressForm();
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button variant="outline">Manage Addresses</Button>
-              </DialogTrigger>
-              <DialogContent className="max-h-[85vh] overflow-y-auto space-y-6 pr-2">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingAddressId ? "Edit Address" : "Add Address"}
-                  </DialogTitle>
-                </DialogHeader>
+              {/* Address Form */}
+              <div className="space-y-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Title</Label>
+                  <Input
+                    value={addressForm.address_title}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        address_title: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Street</Label>
+                  <Input
+                    value={addressForm.street}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        street: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Landmark</Label>
+                  <Input
+                    value={addressForm.landmark}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        landmark: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>City</Label>
+                  <Input
+                    value={addressForm.city}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        city: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>State</Label>
+                  <Input
+                    value={addressForm.state}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        state: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Zip</Label>
+                  <Input
+                    value={addressForm.pincode}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        pincode: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
 
-                {/* Address Form */}
-                <div className="space-y-3">
-                  <div>
-                    <Label>Title</Label>
-                    <Input
-                      value={addressForm.address_title}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          address_title: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>Street</Label>
-                    <Input
-                      value={addressForm.street}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          street: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>Landmark</Label>
-                    <Input
-                      value={addressForm.landmark}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          landmark: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>City</Label>
-                    <Input
-                      value={addressForm.city}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          city: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>State</Label>
-                    <Input
-                      value={addressForm.state}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          state: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>Zip</Label>
-                    <Input
-                      value={addressForm.pincode}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          pincode: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <Button
-                    onClick={handleAddressSave}
-                    disabled={creatingAddress || updatingAddress}
+              <Button
+                onClick={handleAddressSave}
+                disabled={creatingAddress || updatingAddress}
+                className="w-full"
+              >
+                {creatingAddress || updatingAddress ? "Saving..." : "Save"}
+              </Button>
+
+              {/* Address List */}
+              <div className="space-y-2 pt-4 max-h-[300px] overflow-auto">
+                {addresses.map((addr) => (
+                  <div
+                    key={addr.id}
+                    className="border p-3 rounded flex flex-col sm:flex-row sm:justify-between gap-3"
                   >
-                    {creatingAddress || updatingAddress ? "Saving..." : "Save"}
-                  </Button>
-                </div>
-
-                {/* Address List */}
-                <div className="space-y-2 pt-4 max-h-[300px] overflow-auto">
-                  {addresses.map((addr) => (
-                    <div
-                      key={addr.id}
-                      className="border p-3 rounded flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="font-medium">{addr.address_title}</p>
-                        <p>{addr.street_address}</p>
-                        <p>{addr.landmark}</p>
-                        <p>
-                          {addr.city}, {addr.state} - {addr.pincode}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={() => handleEditClick(addr)}
-                        >
-                          <Edit size={16} />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          onClick={() =>
-                            removeAddress({
-                              uid: selectedCustomerId,
-                              id: addr.id,
-                            })
-                          }
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
+                    <div>
+                      <p className="font-medium">{addr.address_title}</p>
+                      <p>{addr.street_address}</p>
+                      <p>{addr.landmark}</p>
+                      <p>
+                        {addr.city}, {addr.state} - {addr.pincode}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => handleEditClick(addr)}
+                      >
+                        <Edit size={16} />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        onClick={() =>
+                          removeAddress({ uid: selectedCustomerId, id: addr.id })
+                        }
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
-      <Products />
-      <div className="w-[80%] fixed bottom-0 flex justify-center items-center">
+      <CategoryItem setCategoryId={setCategoryId} a={categoryId} />
+      <Products a={categoryId} />
+
+      {/* Checkout Button */}
+      <div className="w-[80%] fixed bottom-0 flex justify-center items-center p-4 sm:p-6 bg-white shadow-t">
         <button
           onClick={handleCheckoutClick}
-          className="w-[80%] bg-green-500 mb-5 py-3 text-white rounded-2xl flex justify-center gap-3"
+          className="w-full sm:w-[80%] bg-green-500 py-3 text-white rounded-2xl flex justify-center gap-3"
         >
           <p className="text-xl">Create Order</p>
           <p className="text-xl">₹{finalAmount}</p>

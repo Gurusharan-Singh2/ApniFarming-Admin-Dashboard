@@ -55,11 +55,11 @@ export default function CartPage() {
           </div>
 
           <div className="flex items-center justify-between bg-green-600 rounded-lg px-1 py-2 w-28">
-            <button onClick={() => decrement(item.id, item.selectedSize?.id)} className="text-white text-2xl">
+            <button onClick={() => decrement(item.id, item.selectedSize?.id)} className="text-white text-3xl">
               -
             </button>
 
-            <span className="text-lg font-semibold text-white">{item.quantity}</span>
+            <span className="text-2xl font-semibold text-white">{item.quantity}</span>
 
             <button
               onClick={() => {
@@ -73,7 +73,7 @@ export default function CartPage() {
                   }
                 }
               }}
-              className="text-white text-xl"
+              className="text-white text-2xl"
             >
               +
             </button>

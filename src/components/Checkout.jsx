@@ -6,6 +6,7 @@ import useCartStore from '@/Store/Cart';
 import { toast } from 'react-toastify';
 import DeliverySlotSelector from './SlotSelector';
 import { useMutation } from '@tanstack/react-query';
+import OrderSummary from './OrderSummary';
 
 const Checkout = ({ setCheckout, user, address }) => {
   const {
@@ -15,8 +16,10 @@ const Checkout = ({ setCheckout, user, address }) => {
     gstAmount,
     deliveryCharge,
     couponCode,
+     applyChargesFromBackend,
     couponDiscount,
   } = useCartStore();
+
 
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -36,6 +39,14 @@ const Checkout = ({ setCheckout, user, address }) => {
         );
 
         const rawSlotsData = res?.data?.data;
+     
+        
+        if (res?.data?.success===true){
+         applyChargesFromBackend({
+        delivery_charge: parseFloat(res.data.deliverycharge || 0),
+        gst: parseFloat(res.data.tax || 0),
+      });
+        }
         const parsedSlots =
           typeof rawSlotsData === 'string'
             ? JSON.parse(rawSlotsData)
@@ -44,7 +55,6 @@ const Checkout = ({ setCheckout, user, address }) => {
         const allSlots = Array.isArray(parsedSlots) ? parsedSlots : [];
         setTimeSlots(allSlots);
 
-        // ✅ Auto-select first valid slot
         if (allSlots.length > 0) {
           const dateObj = new Date(dateParam);
           const now = new Date();
@@ -77,7 +87,8 @@ const Checkout = ({ setCheckout, user, address }) => {
     [finalAmount]
   );
 
-  // 👇 Only one effect (with loader on mount & when date changes)
+
+
   useEffect(() => {
     fetchTimeSlots(selectedDate, true);
   }, [selectedDate, fetchTimeSlots]);
@@ -89,6 +100,7 @@ const Checkout = ({ setCheckout, user, address }) => {
         payload
       );
      
+      
       
       return res.data;
     },
@@ -123,8 +135,7 @@ const Checkout = ({ setCheckout, user, address }) => {
       return;
     }
 
-   console.log(address);
-   
+  
    
     
     const orderPayload = {
@@ -133,7 +144,7 @@ const Checkout = ({ setCheckout, user, address }) => {
       phone: user.phone,
       first_name: user.first_name,
       payment_method: 'cod',
-      total_price: totalAmount,
+      total_price: finalAmount,
       final_price: finalAmount,
       tax: gstAmount,
       shipping_price: deliveryCharge,
@@ -196,13 +207,18 @@ const Checkout = ({ setCheckout, user, address }) => {
       {isLoading ? (
         <p className="px-6 mt-4">Loading slots...</p>
       ) : (
-        <DeliverySlotSelector
+       <div className='flex justify-between items-center'> <DeliverySlotSelector
           slots={timeSlots}
           selectedDate={new Date(selectedDate)}
           selectedSlotId={selectedSlotId}
           setSelectedSlotId={setSelectedSlotId}
         />
+        
+        
+        </div>
+        
       )}
+      <OrderSummary/>
 
       {/* Checkout Button */}
       <div className="mt-6 px-6">
@@ -215,7 +231,7 @@ const Checkout = ({ setCheckout, user, address }) => {
               : 'bg-gray-400 cursor-not-allowed'
           }`}
         >
-          Checkout
+          {CheckoutMutation.isPending ? 'Processing...' : 'Checkout'}
         </button>
       </div>
     </div>
