@@ -331,6 +331,8 @@ const Page = () => {
     }
   }, [selectedCustomerId, addresses, isAddressesLoading]);
 
+
+  
   if (checkout) {
     return (
       <Checkout
@@ -342,8 +344,8 @@ const Page = () => {
   }
 
   return (
-    <main className="p-4 md:p-6 max-w-[1600px] min-h-screen mx-auto">
-      <h1 className="text-lg md:text-xl font-semibold mb-4">Create New Order</h1>
+    <main className="p-4 md:p-6 max-w-[1600px] min-h-screen mx-auto bg-white dark:bg-black text-black dark:text-white">
+      <h1 className="text-lg md:text-xl font-semibold mb-4 text-black dark:text-white">Create New Order</h1>
 
       {/* Search + Select Customer */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 flex-wrap">
@@ -351,7 +353,7 @@ const Page = () => {
           placeholder="Search customer by name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full sm:w-[250px]"
+          className="w-full sm:w-[250px] bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
         />
 
         <Select
@@ -474,7 +476,7 @@ const Page = () => {
                 Manage Addresses
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-h-[85vh] overflow-y-auto space-y-6 pr-2">
+            <DialogContent className="max-h-[85vh] overflow-y-auto space-y-6 pr-2 bg-white dark:bg-neutral-900 text-black dark:text-white">
               <DialogHeader>
                 <DialogTitle>
                   {editingAddressId ? "Edit Address" : "Add Address"}
@@ -493,6 +495,7 @@ const Page = () => {
                         address_title: e.target.value,
                       })
                     }
+                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
                   />
                 </div>
                 <div>
@@ -505,6 +508,7 @@ const Page = () => {
                         street: e.target.value,
                       })
                     }
+                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
                   />
                 </div>
                 <div>
@@ -517,6 +521,7 @@ const Page = () => {
                         landmark: e.target.value,
                       })
                     }
+                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
                   />
                 </div>
                 <div>
@@ -529,6 +534,7 @@ const Page = () => {
                         city: e.target.value,
                       })
                     }
+                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
                   />
                 </div>
                 <div>
@@ -541,6 +547,7 @@ const Page = () => {
                         state: e.target.value,
                       })
                     }
+                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
                   />
                 </div>
                 <div>
@@ -553,6 +560,7 @@ const Page = () => {
                         pincode: e.target.value,
                       })
                     }
+                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
                   />
                 </div>
               </div>
@@ -570,7 +578,7 @@ const Page = () => {
                 {addresses.map((addr) => (
                   <div
                     key={addr.id}
-                    className="border p-3 rounded flex flex-col sm:flex-row sm:justify-between gap-3"
+                    className="border p-3 rounded flex flex-col sm:flex-row sm:justify-between gap-3 bg-white dark:bg-neutral-900 border-gray-300 dark:border-gray-700"
                   >
                     <div>
                       <p className="font-medium">{addr.address_title}</p>
@@ -610,10 +618,10 @@ const Page = () => {
       <Products a={categoryId} />
 
       {/* Checkout Button */}
-      <div className="w-[80%] fixed bottom-0 flex justify-center items-center p-4 sm:p-6 bg-white shadow-t">
+      <div className="w-[80%] fixed bottom-0 flex justify-center items-center py-4 bg-white dark:bg-neutral-900 shadow-t border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={handleCheckoutClick}
-          className="w-full sm:w-[80%] bg-green-500 py-3 text-white rounded-2xl flex justify-center gap-3"
+          className="w-full sm:w-[80%] bg-green-500 dark:bg-green-600 py-3 pt-0 text-white rounded-2xl flex justify-center gap-3"
         >
           <p className="text-xl">Create Order</p>
           <p className="text-xl">₹{finalAmount}</p>

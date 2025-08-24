@@ -109,7 +109,7 @@ const Products = ({ a }: ProductsProps) => {
       </div>
 
       {/* Products Grid */}
-      <ScrollArea className="h-[80vh] w-full">
+      <ScrollArea className="h-full w-full mb-[10%]">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 px-4 pb-10">
           {productsToShow.length > 0 ? (
             productsToShow.map((item) => <ProductCard key={item.id} item={item} />)

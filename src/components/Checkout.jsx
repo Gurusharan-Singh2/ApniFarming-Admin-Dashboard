@@ -177,11 +177,11 @@ const Checkout = ({ setCheckout, user, address }) => {
   };
 
   return (
-    <div className="h-full relative p-4">
+    <div className="h-full relative p-4 bg-white dark:bg-neutral-900 text-black dark:text-white">
       {/* Close Button */}
       <button
         onClick={() => setCheckout(false)}
-        className="bg-black text-white w-[100px] absolute top-1 right-1 px-2 rounded-full py-1"
+        className="bg-black dark:bg-white text-white dark:text-black w-[100px] absolute top-1 right-1 px-2 rounded-full py-1 border border-gray-300 dark:border-gray-700"
       >
         Close
       </button>
@@ -191,7 +191,7 @@ const Checkout = ({ setCheckout, user, address }) => {
 
       {/* Date Picker */}
       <div className="px-6">
-        <label className="block font-medium mb-1">
+        <label className="block font-medium mb-1 text-black dark:text-white">
           📅 Select Delivery Date:
         </label>
         <input
@@ -199,13 +199,13 @@ const Checkout = ({ setCheckout, user, address }) => {
           value={selectedDate}
           min={new Date().toISOString().split('T')[0]}
           onChange={(e) => setSelectedDate(e.target.value)}
-          className="border rounded px-3 py-2"
+          className="border rounded px-3 py-2 bg-white dark:bg-neutral-800 text-black dark:text-white border-gray-300 dark:border-gray-700"
         />
       </div>
 
       {/* Delivery Slots */}
       {isLoading ? (
-        <p className="px-6 mt-4">Loading slots...</p>
+        <p className="px-6 mt-4 text-black dark:text-white">Loading slots...</p>
       ) : (
        <div className='flex justify-between items-center'> <DeliverySlotSelector
           slots={timeSlots}
@@ -227,8 +227,8 @@ const Checkout = ({ setCheckout, user, address }) => {
           disabled={!selectedSlotId}
           className={`px-4 py-2 rounded text-white w-full ${
             selectedSlotId
-              ? 'bg-blue-500'
-              : 'bg-gray-400 cursor-not-allowed'
+              ? 'bg-blue-500 dark:bg-blue-600'
+              : 'bg-gray-400 dark:bg-gray-700 cursor-not-allowed'
           }`}
         >
           {CheckoutMutation.isPending ? 'Processing...' : 'Checkout'}
