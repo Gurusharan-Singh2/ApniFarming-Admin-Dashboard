@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useMemo, useCallback, useRef } from "react"
 import {
   Card,
   CardContent,
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Dialog,
@@ -28,6 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import axios from "axios"
 import dayjs from "dayjs"
+import { useVirtualizer } from "@tanstack/react-virtual"
 
 type Order = {
   id: number
@@ -134,40 +135,94 @@ const changeOrderStatuses = async ({
     }
   )
 }
+
+const statusMap: Record<string, { label: string; code: number }> = {
+  "order processed": { label: "Order Processed", code: 1 },
+  "ordered": { label: "Order Confirmed", code: 2 },
+  "delivering": { label: "Out for Delivery", code: 3 },
+  "delivered": { label: "Delivered", code: 4 },
+  "refunded": { label: "Refunded", code: 8 },
+  "cancelled": { label: "Cancelled", code: 9 },
+}
+
+const statusColors: Record<string, string> = {
+  "order processed": "bg-blue-500 text-white",
+  "ordered": "bg-indigo-500 text-white",
+  "delivering": "bg-yellow-500 text-black",
+  "delivered": "bg-green-600 text-white",
+  "cancelled": "bg-red-600 text-white",
+  "refunded": "bg-purple-600 text-white",
+}
+
 export default function OrdersComponent() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState("date")
+  const [selectedOrders, setSelectedOrders] = useState<number[]>([])
 
-  const { data: orders } = useQuery<Order[]>({
+  const {
+    data: orders,
+    isLoading,
+    isError,
+  } = useQuery<Order[]>({
     queryKey: ["orders"],
     queryFn: fetchOrders,
   })
 
   const mutation = useMutation({
-  mutationFn: changeOrderStatuses,
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
-})
+    mutationFn: changeOrderStatuses,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] })
+      setSelectedOrders([])
+    },
+    onError: (error) => {
+      console.error("Failed to update status", error)
+    },
+  })
 
-  const filteredOrders = orders
-    ?.filter((o) =>
-      o.firstName?.toLowerCase().includes(search.toLowerCase())
+  const toggleOrderSelection = useCallback((id: number) => {
+    setSelectedOrders((prev) =>
+      prev.includes(id) ? prev.filter((oid) => oid !== id) : [...prev, id]
     )
-    .sort((a, b) => {
-      if (sortBy === "status")
-        return a.orderStatus.localeCompare(b.orderStatus)
-      return (
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
-    })
+  }, [])
 
-  const statusColors: Record<string, string> = {
-    "order processed": "bg-blue-500",
-    ordered: "bg-blue-500",
-    delivering: "bg-yellow-500",
-    delivered: "bg-green-500",
-    cancel: "bg-red-500",
-  }
+  const toggleSelectAll = useCallback(() => {
+    if (orders && selectedOrders.length === orders.length) {
+      setSelectedOrders([])
+    } else if (orders) {
+      setSelectedOrders(orders.map((o) => o.id))
+    }
+  }, [orders, selectedOrders])
+
+  const filteredOrders = useMemo(() => {
+    if (!orders) return []
+    let data = [...orders]
+    if (search) {
+      data = data.filter((o) =>
+        o.firstName?.toLowerCase().includes(search.toLowerCase())
+      )
+    }
+    if (sortBy === "status") {
+      data.sort((a, b) => a.orderStatus.localeCompare(b.orderStatus))
+    } else {
+      data.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+    }
+    return data
+  }, [orders, search, sortBy])
+
+  // ✅ Virtualization
+  const parentRef = useRef<HTMLDivElement>(null)
+  const rowVirtualizer = useVirtualizer({
+    count: filteredOrders.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 120, // avg row height
+  })
+
+  if (isLoading) return <p>Loading orders...</p>
+  if (isError) return <p className="text-red-500">Failed to fetch orders.</p>
 
   return (
     <Card className="p-4">
@@ -193,126 +248,206 @@ export default function OrdersComponent() {
           </Select>
         </div>
 
-        <ScrollArea className="max-h-[70vh] space-y-4">
-          {filteredOrders?.map((order) => (
-            <Card key={order.id} className="p-4">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                <div>
-                  <p className="font-medium">{order?.firstName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {dayjs(order.deliveryDate).format("DD MMM YYYY")}
-                  </p>
+        {/* ✅ Bulk status update */}
+        {selectedOrders.length > 0 && (
+          <div className="flex items-center gap-3 mb-4">
+            <p className="text-sm text-muted-foreground">
+              {selectedOrders.length} orders selected
+            </p>
+            <Select
+              onValueChange={(value) => {
+                const statusEntry = statusMap[value]
+                if (!statusEntry) return
+                mutation.mutate({
+                  orderIds: selectedOrders,
+                  status: statusEntry.code,
+                })
+              }}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Bulk update status" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(statusMap).map(([key, s]) => (
+                  <SelectItem key={key} value={key}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* ✅ Virtualized List */}
+        <div
+          ref={parentRef}
+          className="max-h-[70vh] overflow-auto border rounded-md"
+        >
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const order = filteredOrders[virtualRow.index]
+              return (
+                <div
+                  key={order.id}
+                  ref={rowVirtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <OrderRow
+                    order={order}
+                    selected={selectedOrders.includes(order.id)}
+                    toggleOrderSelection={toggleOrderSelection}
+                    mutation={mutation}
+                  />
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                  <Badge
-                    className={
-                      statusColors[order?.orderStatus?.toLowerCase()] || ""
-                    }
-                  >
-                    {order?.orderStatus}
-                  </Badge>
-
-                 <Select
-  value={order?.orderStatus}
-  onValueChange={(value) => {
-    const statusMap: Record<string, number> = {
-      "order_processed": 1,
-      "order_confirmed": 2,
-      "out_for_delivery": 3,
-      "delivered": 4,
-      "refunded": 8,
-      "cancelled": 9,
-    }
-
-    mutation.mutate({
-      orderIds: [order.id],
-      status: statusMap[value],
-    })
-  }}
->
-  <SelectTrigger className="w-[150px] sm:w-[160px]">
-    <SelectValue />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="order_processed">Order Processed</SelectItem>
-    <SelectItem value="order_confirmed">Order Confirmed</SelectItem>
-    <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-    <SelectItem value="delivered">Delivered</SelectItem>
-    <SelectItem value="refunded">Refunded</SelectItem>
-    <SelectItem value="cancelled">Cancelled</SelectItem>
-  </SelectContent>
-</Select>
-
-
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full sm:w-auto">
-                        More Info
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Order Details</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-2 text-sm">
-                        <p><strong>Order ID:</strong> {order.id}</p>
-                        <p><strong>User ID:</strong> {order.uid}</p>
-                        <p><strong>Customer Name:</strong> {order.firstName}</p>
-                        <p><strong>Email:</strong> {order.email || "N/A"}</p>
-                        <p><strong>Phone:</strong> {order.phone}</p>
-                        <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
-                        <p><strong>Payment Status:</strong> {order.paymentStatus}</p>
-                        <p><strong>Total Price:</strong> {order.totalPrice}</p>
-                        <p><strong>Tax:</strong> {order.tax}</p>
-                        <p><strong>Discount:</strong> {order.discount}</p>
-                        <p><strong>Shipping Price:</strong> {order.shippingPrice}</p>
-                        <p><strong>Coupon Code:</strong> {order.couponCode || "N/A"}</p>
-                        <p><strong>Total Received Amount:</strong> {order.totalReceivedAmount}</p>
-                        <p><strong>Order Status:</strong> {order.orderStatus}</p>
-                        <p><strong>Delivery Date:</strong> {dayjs(order.deliveryDate).format("DD MMM YYYY")}</p>
-                        <p><strong>Delivery Time:</strong> {dayjs(order.deliveryFromTime, "HH:mm:ss").format("hh:mm A")} - {dayjs(order.deliveryToTime, "HH:mm:ss").format("hh:mm A")}</p>
-                        <p><strong>Delivery Instruction:</strong> {order.deliveryInstruction || "N/A"}</p>
-                        <p><strong>Shipping Address:</strong> {order.shippingAddress}, {order.shippingCity}, {order.shippingState}, {order.shippingCountry}, {order.shippingPostalCode}</p>
-                        <p><strong>Driver:</strong> {order.driverName || "Not Assigned"}</p>
-                        <p><strong>Driver Phone:</strong> {order.driverPhoneNumber || "N/A"}</p>
-                        <p><strong>Created At:</strong> {dayjs(order.createdAt).format("DD MMM YYYY, hh:mm A")}</p>
-                        <p><strong>Updated At:</strong> {dayjs(order.updatedAt).format("DD MMM YYYY, hh:mm A")}</p>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full sm:w-auto">
-                        View Items
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Items</DialogTitle>
-                      </DialogHeader>
-                      <OrderItems orderId={order.id} />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </ScrollArea>
+              )
+            })}
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
 }
 
+/* ===============================
+   ✅ Memoized Order Row Component
+   =============================== */
+const OrderRow = React.memo(function OrderRow({
+  order,
+  selected,
+  toggleOrderSelection,
+  mutation,
+}: {
+  order: Order
+  selected: boolean
+  toggleOrderSelection: (id: number) => void
+  mutation: any
+}) {
+  const statusKey = order?.orderStatus?.toLowerCase()
+  const statusInfo = statusMap[statusKey]
+
+  return (
+    <Card className="p-4 m-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={() => toggleOrderSelection(order.id)}
+          />
+          <div>
+            <p className="font-medium">{order?.firstName}</p>
+            <p className="text-sm text-muted-foreground">
+              {dayjs(order.deliveryDate).format("DD MMM YYYY")}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <Badge
+            className={statusColors[statusKey] || "bg-gray-500 text-white"}
+          >
+            {statusInfo?.label || order?.orderStatus}
+          </Badge>
+
+          <Select
+            value={statusKey}
+            onValueChange={(value) => {
+              if (statusKey === value) return
+              const statusEntry = statusMap[value]
+              if (!statusEntry) return
+              mutation.mutate({
+                orderIds: [order.id],
+                status: statusEntry.code,
+              })
+            }}
+          >
+            <SelectTrigger className="w-[150px] sm:w-[160px]">
+              <SelectValue placeholder="Change status" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(statusMap).map(([key, s]) => (
+                <SelectItem key={key} value={key}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                More Info
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Order Details</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 text-sm">
+                <p><strong>Order ID:</strong> {order.id}</p>
+                <p><strong>User ID:</strong> {order.uid}</p>
+                <p><strong>Customer Name:</strong> {order.firstName}</p>
+                <p><strong>Email:</strong> {order.email || "N/A"}</p>
+                <p><strong>Phone:</strong> {order.phone}</p>
+                <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
+                <p><strong>Payment Status:</strong> {order.paymentStatus}</p>
+                <p><strong>Total Price:</strong> {order.totalPrice}</p>
+                <p><strong>Tax:</strong> {order.tax}</p>
+                <p><strong>Discount:</strong> {order.discount}</p>
+                <p><strong>Shipping Price:</strong> {order.shippingPrice}</p>
+                <p><strong>Coupon Code:</strong> {order.couponCode || "N/A"}</p>
+                <p><strong>Total Received Amount:</strong> {order.totalReceivedAmount}</p>
+                <p><strong>Order Status:</strong> {statusInfo?.label || order.orderStatus}</p>
+                <p><strong>Delivery Date:</strong> {dayjs(order.deliveryDate).format("DD MMM YYYY")}</p>
+                <p><strong>Delivery Time:</strong> {dayjs(order.deliveryFromTime, "HH:mm:ss").format("hh:mm A")} - {dayjs(order.deliveryToTime, "HH:mm:ss").format("hh:mm A")}</p>
+                <p><strong>Delivery Instruction:</strong> {order.deliveryInstruction || "N/A"}</p>
+                <p><strong>Shipping Address:</strong> {order.shippingAddress}, {order.shippingCity}, {order.shippingState}, {order.shippingCountry}, {order.shippingPostalCode}</p>
+                <p><strong>Driver:</strong> {order.driverName || "Not Assigned"}</p>
+                <p><strong>Driver Phone:</strong> {order.driverPhoneNumber || "N/A"}</p>
+                <p><strong>Created At:</strong> {dayjs(order.createdAt).format("DD MMM YYYY, hh:mm A")}</p>
+                <p><strong>Updated At:</strong> {dayjs(order.updatedAt).format("DD MMM YYYY, hh:mm A")}</p>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                View Items
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Items</DialogTitle>
+              </DialogHeader>
+              <OrderItems orderId={order.id} />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+    </Card>
+  )
+})
+
+/* ===============================
+   ✅ Order Items Component
+   =============================== */
 function OrderItems({ orderId }: { orderId: number }) {
-  const { data: items, isLoading, isError } = useQuery<OrderItem[]>({
+  const { data: items } = useQuery<OrderItem[]>({
     queryKey: ["order-items", orderId],
     queryFn: () => fetchOrderItems(orderId),
   })
 
-  if (isLoading) return <p>Loading items...</p>
-  if (isError) return <p className="text-red-500 text-sm">Failed to load items.</p>
   if (!items || items.length === 0)
     return <p className="text-muted-foreground text-sm">No items available</p>
 
