@@ -160,11 +160,7 @@ export default function OrdersComponent() {
   const [sortBy, setSortBy] = useState("date")
   const [selectedOrders, setSelectedOrders] = useState<number[]>([])
 
-  const {
-    data: orders,
-    isLoading,
-    isError,
-  } = useQuery<Order[]>({
+  const { data: orders, isLoading, isError } = useQuery<Order[]>({
     queryKey: ["orders"],
     queryFn: fetchOrders,
   })
@@ -185,14 +181,6 @@ export default function OrdersComponent() {
       prev.includes(id) ? prev.filter((oid) => oid !== id) : [...prev, id]
     )
   }, [])
-
-  const toggleSelectAll = useCallback(() => {
-    if (orders && selectedOrders.length === orders.length) {
-      setSelectedOrders([])
-    } else if (orders) {
-      setSelectedOrders(orders.map((o) => o.id))
-    }
-  }, [orders, selectedOrders])
 
   const filteredOrders = useMemo(() => {
     if (!orders) return []
@@ -218,7 +206,7 @@ export default function OrdersComponent() {
   const rowVirtualizer = useVirtualizer({
     count: filteredOrders.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 120, // avg row height
+    estimateSize: () => 150,
   })
 
   if (isLoading) return <p>Loading orders...</p>
@@ -248,9 +236,9 @@ export default function OrdersComponent() {
           </Select>
         </div>
 
-        {/* ✅ Bulk status update */}
+        {/* Bulk status update */}
         {selectedOrders.length > 0 && (
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
             <p className="text-sm text-muted-foreground">
               {selectedOrders.length} orders selected
             </p>
@@ -278,7 +266,7 @@ export default function OrdersComponent() {
           </div>
         )}
 
-        {/* ✅ Virtualized List */}
+        {/* Virtualized List */}
         <div
           ref={parentRef}
           className="max-h-[70vh] overflow-auto border rounded-md"
@@ -320,7 +308,7 @@ export default function OrdersComponent() {
 }
 
 /* ===============================
-   ✅ Memoized Order Row Component
+   Memoized Order Row Component
    =============================== */
 const OrderRow = React.memo(function OrderRow({
   order,
@@ -337,8 +325,8 @@ const OrderRow = React.memo(function OrderRow({
   const statusInfo = statusMap[statusKey]
 
   return (
-    <Card className="p-4 m-2">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+    <Card className="p-4 m-2 w-full">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 w-full">
         <div className="flex items-center gap-2">
           <Checkbox
             checked={selected}
@@ -352,7 +340,7 @@ const OrderRow = React.memo(function OrderRow({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+        <div className="flex flex-wrap sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <Badge
             className={statusColors[statusKey] || "bg-gray-500 text-white"}
           >
@@ -440,7 +428,7 @@ const OrderRow = React.memo(function OrderRow({
 })
 
 /* ===============================
-   ✅ Order Items Component
+   Order Items Component
    =============================== */
 function OrderItems({ orderId }: { orderId: number }) {
   const { data: items } = useQuery<OrderItem[]>({
