@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 import axios from "axios";
 import dayjs from "dayjs";
 
@@ -68,42 +69,50 @@ type OrderItem = {
   customize?: string;
 };
 
-const fetchOrders = async (): Promise<Order[]> => {
+const fetchOrders = async ({
+  queryKey,
+}: {
+  queryKey: any;
+}): Promise<{ orders: Order[]; totalPages: number }> => {
+  const [_key, page, limit] = queryKey;
   const response = await axios.get(
-    "https://api.apnifarming.com/user/admin/orderlist.php"
+    `https://api.apnifarming.com/user/admin/orderlist.php?page=${page}&limit=${limit}`
   );
-  return (
-    response?.data?.orders?.map((o: any) => ({
-      id: o.id,
-      uid: o.uid,
-      firstName: o.first_name,
-      email: o.email,
-      phone: o.phone,
-      paymentMethod: o.payment_method,
-      totalPrice: o.total_price,
-      tax: o.tax,
-      shippingPrice: o.shipping_price,
-      couponCode: o.coupon_code,
-      discount: o.discount,
-      shippingAddress: o.shipping_address,
-      shippingCity: o.shipping_city,
-      shippingPostalCode: o.shipping_postalcode,
-      deliveryDate: o.delivery_date,
-      deliveryFromTime: o.delivery_from_time,
-      deliveryToTime: o.delivery_to_time,
-      shippingState: o.shipping_state,
-      shippingCountry: o.shipping_country,
-      driverId: o.driver_id,
-      orderStatus: o.order_status,
-      createdAt: o.created_at,
-      updatedAt: o.updated_at,
-      deliveryInstruction: o.delivey_instruction,
-      driverName: o.driver_name,
-      driverPhoneNumber: o.driver_phone_number,
-      paymentStatus: o.payment_status,
-      totalReceivedAmount: o.total_recived_amount,
-    })) ?? []
-  );
+
+  return {
+    orders:
+      response?.data?.orders?.map((o: any) => ({
+        id: o.id,
+        uid: o.uid,
+        firstName: o.first_name,
+        email: o.email,
+        phone: o.phone,
+        paymentMethod: o.payment_method,
+        totalPrice: o.total_price,
+        tax: o.tax,
+        shippingPrice: o.shipping_price,
+        couponCode: o.coupon_code,
+        discount: o.discount,
+        shippingAddress: o.shipping_address,
+        shippingCity: o.shipping_city,
+        shippingPostalCode: o.shipping_postalcode,
+        deliveryDate: o.delivery_date,
+        deliveryFromTime: o.delivery_from_time,
+        deliveryToTime: o.delivery_to_time,
+        shippingState: o.shipping_state,
+        shippingCountry: o.shipping_country,
+        driverId: o.driver_id,
+        orderStatus: o.order_status,
+        createdAt: o.created_at,
+        updatedAt: o.updated_at,
+        deliveryInstruction: o.delivey_instruction,
+        driverName: o.driver_name,
+        driverPhoneNumber: o.driver_phone_number,
+        paymentStatus: o.payment_status,
+        totalReceivedAmount: o.total_recived_amount,
+      })) ?? [],
+    totalPages: response?.data?.total_pages ?? 1,
+  };
 };
 
 const fetchOrderItems = async (id: number): Promise<OrderItem[]> => {
@@ -132,20 +141,20 @@ const changeOrderStatuses = async ({
 
 const statusMap: Record<string, { label: string; code: number }> = {
   "order processed": { label: "Order Processed", code: 1 },
-  ordered: { label: "Order Confirmed", code: 2 },
-  delivering: { label: "Out for Delivery", code: 3 },
-  delivered: { label: "Delivered", code: 4 },
-  refunded: { label: "Refunded", code: 8 },
-  cancelled: { label: "Cancelled", code: 9 },
+  "order confirmed": { label: "Order Confirmed", code: 2 },
+  "out for delivery": { label: "Out for Delivery", code: 3 },
+  "delivered": { label: "Delivered", code: 4 },
+  "refunded": { label: "Refunded", code: 8 },
+  "cancelled": { label: "Cancelled", code: 9 },
 };
 
 const statusColors: Record<string, string> = {
   "order processed": "bg-blue-500 text-white",
-  ordered: "bg-indigo-500 text-white",
-  delivering: "bg-yellow-500 text-black",
-  delivered: "bg-green-600 text-white",
-  cancelled: "bg-red-600 text-white",
-  refunded: "bg-purple-600 text-white",
+  "order confirmed": "bg-indigo-500 text-white",
+   "out for delivery": "bg-yellow-500 text-black",
+   "delivered": "bg-green-600 text-white",
+  "cancelled": "bg-red-600 text-white",
+  "refunded": "bg-purple-600 text-white",
 };
 
 export default function OrdersComponent() {
@@ -153,13 +162,19 @@ export default function OrdersComponent() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("date");
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit,setLimit]=useState(10);
 
-  const { data: orders, isLoading, isError } = useQuery<Order[]>({
-    queryKey: ["orders"],
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["orders", page, limit],
     queryFn: fetchOrders,
+    placeholderData: { orders: [], totalPages: 1 },
   });
 
-  const mutation = useMutation({
+  const orders = data?.orders ?? [];
+  const totalPages = data?.totalPages ?? 1;
+
+  const Ordermutation = useMutation({
     mutationFn: changeOrderStatuses,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -204,7 +219,6 @@ export default function OrdersComponent() {
         <CardTitle>Orders</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Search & Sort */}
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <Input
             placeholder="Search by customer"
@@ -221,6 +235,22 @@ export default function OrdersComponent() {
               <SelectItem value="status">Status</SelectItem>
             </SelectContent>
           </Select>
+
+          <div className="flex items-center gap-2">
+  <label className="text-sm text-muted-foreground">Limit:</label>
+  <Input
+    type="number"
+    value={limit}
+    onChange={(e) => {
+      const val = parseInt(e.target.value) || 1;
+      setLimit(val);
+      setPage(1); 
+    }}
+    className="w-20"
+    min={1}
+  />
+</div>
+
         </div>
 
         {/* Bulk status update */}
@@ -230,17 +260,25 @@ export default function OrdersComponent() {
               {selectedOrders.length} orders selected
             </p>
             <Select
+              disabled={Ordermutation.isPending}
               onValueChange={(value) => {
                 const statusEntry = statusMap[value];
                 if (!statusEntry) return;
-                mutation.mutate({
+                Ordermutation.mutate({
                   orderIds: selectedOrders,
                   status: statusEntry.code,
                 });
               }}
             >
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Bulk update status" />
+                {Ordermutation.isPending ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Updating...</span>
+                  </div>
+                ) : (
+                  <SelectValue placeholder="Bulk update status" />
+                )}
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(statusMap).map(([key, s]) => (
@@ -261,9 +299,30 @@ export default function OrdersComponent() {
               order={order}
               selected={selectedOrders.includes(order.id)}
               toggleOrderSelection={toggleOrderSelection}
-              mutation={mutation}
+              mutation={Ordermutation}
             />
           ))}
+        </div>
+
+        {/* Pagination  btn */}
+        <div className="flex justify-between items-center mt-6">
+          <Button
+            variant="outline"
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(p - 1, 1))}
+          >
+            Previous
+          </Button>
+          <p className="text-sm">
+            Page {page} of {totalPages}
+          </p>
+          <Button
+            variant="outline"
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+          >
+            Next
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -311,6 +370,7 @@ const OrderRow = React.memo(function OrderRow({
 
           <Select
             value={statusKey}
+            disabled={mutation.isPending}
             onValueChange={(value) => {
               if (statusKey === value) return;
               const statusEntry = statusMap[value];
@@ -322,7 +382,14 @@ const OrderRow = React.memo(function OrderRow({
             }}
           >
             <SelectTrigger className="w-[150px] sm:w-[160px]">
-              <SelectValue placeholder="Change status" />
+              {mutation.isPending ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Updating...</span>
+                </div>
+              ) : (
+                <SelectValue placeholder="Change status" />
+              )}
             </SelectTrigger>
             <SelectContent>
               {Object.entries(statusMap).map(([key, s]) => (
@@ -423,7 +490,8 @@ function OrderDetails({ order }: { order: Order }) {
         {dayjs(order.deliveryToTime, "HH:mm:ss").format("hh:mm A")}
       </p>
       <p>
-        <strong>Delivery Instruction:</strong> {order.deliveryInstruction || "N/A"}
+        <strong>Delivery Instruction:</strong>{" "}
+        {order.deliveryInstruction || "N/A"}
       </p>
       <p>
         <strong>Shipping Address:</strong> {order.shippingAddress},{" "}
