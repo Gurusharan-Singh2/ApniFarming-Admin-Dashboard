@@ -44,7 +44,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex safe-area-wrapper`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex safe-area`}
       >
         <ThemeProvider attribute="class"
             defaultTheme="system"

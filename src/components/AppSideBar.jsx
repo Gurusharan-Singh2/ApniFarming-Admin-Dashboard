@@ -1,5 +1,6 @@
 "use client"
-import { Home, Inbox, CalendarSearch, Search, Settings, User2, ChevronUp, Plus, Projector, ChevronDown, ListOrderedIcon, CastleIcon } from 'lucide-react'
+import { Home, Inbox, CalendarSearch, Search, Settings, User2, ChevronUp, Plus, Projector, ChevronDown, ListOrderedIcon, CastleIcon ,UserLock, UserRoundPlus} from 'lucide-react'
+import { UserRound } from 'lucide-react';
 import React from 'react'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from './ui/sidebar'
 import Link from 'next/link'
@@ -12,7 +13,7 @@ import { useSidebar } from './ui/sidebar'
 const items=[
   { title:"Home", url:"/", icon:Home },
   { title:"Orders", url:"/orders", icon:ListOrderedIcon },
-  { title:"Inbox", url:"#", icon:Inbox },
+  { title:"Driver-Assign", url:"/driver-assign", icon:UserLock },
   { title:"Calender", url:"#", icon:CalendarSearch },
   { title:"Search", url:"#", icon:Search },
   { title:"Setting", url:"#", icon:Settings },
@@ -68,7 +69,8 @@ const AppSideBar = () => {
         { label: "Products", links: [{ title: "See All Product", url: "/all-products", icon: Projector }, { title: "Add Product", url: "/add-product", icon: Plus }] },
         { label: "Categories", links: [{ title: "See All Categories", url: "/all-categories", icon: CastleIcon }, { title: "Add Category", url: "/add-category", icon: Plus }] },
         { label: "Bannners", links: [{ title: "See All Banners", url: "/all-banners", icon: CastleIcon }, { title: "Add Banner", url: "/add-banner", icon: Plus }] },
-        { label: "Manage Orders", links: [{ title: "Create new Order", url: "/create-order", icon: Plus }] }
+        { label: "Manage Orders", links: [{ title: "Create new Order", url: "/create-order", icon: Plus }] },
+        { label: "Manage Driver", links: [{ title: "See All Driver", url: "/all-driver", icon: UserRound },{ title: "Add Driver", url: "/add-driver", icon: UserRoundPlus }] },
       ].map((section, idx) => (
         <Collapsible defaultOpen key={idx} className="group/collapsible">
           <SidebarGroup>

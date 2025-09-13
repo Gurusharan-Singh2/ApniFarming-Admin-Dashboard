@@ -139,7 +139,7 @@ function SidebarProvider({
             } as React.CSSProperties
           }
           className={cn(
-            "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
+            "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full safe-area",
             className
           )}
           {...props}
@@ -170,7 +170,7 @@ function Sidebar({
       <div
         data-slot="sidebar"
         className={cn(
-          "bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
+          "bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col safe-area",
           className
         )}
         {...props}
@@ -207,7 +207,7 @@ function Sidebar({
 
   return (
     <div
-      className="group peer text-sidebar-foreground hidden md:block"
+      className="group peer text-sidebar-foreground hidden md:block safe-area"
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
