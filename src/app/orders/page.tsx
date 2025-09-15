@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,9 +74,25 @@ const fetchOrders = async ({
 }: {
   queryKey: any;
 }): Promise<{ orders: Order[]; totalPages: number }> => {
-  const [_key, page, limit] = queryKey;
+  const [_key, page, limit, filters] = queryKey;
+
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    ...(filters.search ? { search: filters.search } : {}),
+    ...(filters.uid ? { uid: String(filters.uid) } : {}),
+    ...(filters.phone ? { phone: filters.phone } : {}),
+    ...(filters.orderId ? { order_id: String(filters.orderId) } : {}),
+    ...(filters.dateFrom ? { date_from: filters.dateFrom } : {}), // ✅ API expects created_at range
+    ...(filters.dateTo ? { date_to: filters.dateTo } : {}),
+    ...(filters.slot ? { slot: filters.slot } : {}),
+    ...(filters.driverId ? { driver_id: String(filters.driverId) } : {}),
+    ...(filters.orderStatus ? { order_status: String(filters.orderStatus) } : {}),
+    ...(filters.paymentStatus ? { payment_status: String(filters.paymentStatus) } : {}),
+  });
+
   const response = await axios.get(
-    `https://api.apnifarming.com/user/admin/orderlist.php?page=${page}&limit=${limit}`
+    `https://api.apnifarming.com/user/admin/orderlist.php?${params.toString()}`
   );
 
   return {
@@ -143,30 +159,41 @@ const statusMap: Record<string, { label: string; code: number }> = {
   "order processed": { label: "Order Processed", code: 1 },
   "order confirmed": { label: "Order Confirmed", code: 2 },
   "out for delivery": { label: "Out for Delivery", code: 3 },
-  "delivered": { label: "Delivered", code: 4 },
-  "refunded": { label: "Refunded", code: 8 },
-  "cancelled": { label: "Cancelled", code: 9 },
+  delivered: { label: "Delivered", code: 4 },
+  refunded: { label: "Refunded", code: 8 },
+  cancelled: { label: "Cancelled", code: 9 },
 };
 
 const statusColors: Record<string, string> = {
   "order processed": "bg-blue-500 text-white",
   "order confirmed": "bg-indigo-500 text-white",
-   "out for delivery": "bg-yellow-500 text-black",
-   "delivered": "bg-green-600 text-white",
-  "cancelled": "bg-red-600 text-white",
-  "refunded": "bg-purple-600 text-white",
+  "out for delivery": "bg-yellow-500 text-black",
+  delivered: "bg-green-600 text-white",
+  cancelled: "bg-red-600 text-white",
+  refunded: "bg-purple-600 text-white",
 };
 
 export default function OrdersComponent() {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("date");
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   const [page, setPage] = useState(1);
-  const [limit,setLimit]=useState(10);
+  const [limit, setLimit] = useState(10);
+
+  const [filters, setFilters] = useState({
+    search: "",
+    uid: "",
+    phone: "",
+    orderId: "",
+    dateFrom: "",
+    dateTo: "",
+    slot: "",
+    driverId: "",
+    orderStatus: "",
+    paymentStatus: "",
+  });
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["orders", page, limit],
+    queryKey: ["orders", page, limit, filters],
     queryFn: fetchOrders,
     placeholderData: { orders: [], totalPages: 1 },
   });
@@ -191,25 +218,6 @@ export default function OrdersComponent() {
     );
   }, []);
 
-  const filteredOrders = useMemo(() => {
-    if (!orders) return [];
-    let data = [...orders];
-    if (search) {
-      data = data.filter((o) =>
-        o.firstName?.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    if (sortBy === "status") {
-      data.sort((a, b) => a.orderStatus.localeCompare(b.orderStatus));
-    } else {
-      data.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    }
-    return data;
-  }, [orders, search, sortBy]);
-
   if (isLoading) return <p>Loading orders...</p>;
   if (isError) return <p className="text-red-500">Failed to fetch orders.</p>;
 
@@ -219,38 +227,107 @@ export default function OrdersComponent() {
         <CardTitle>Orders</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <Input
-            placeholder="Search by customer"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:w-[200px]"
-          />
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date">Date</SelectItem>
-              <SelectItem value="status">Status</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Filters */}
+        <div className="flex flex-col gap-3 mb-4">
+          <div className="flex flex-wrap gap-3">
+            <Input
+              placeholder="Search by name / phone / order ID"
+              value={filters.search}
+              onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+              className="w-[300px]"
+            />
+
+            <Input
+              placeholder="Phone"
+              value={filters.phone}
+              onChange={(e) => setFilters((f) => ({ ...f, phone: e.target.value }))}
+              className="w-[180px]"
+            />
+
+            <Input
+              type="number"
+              placeholder="Order ID"
+              value={filters.orderId}
+              onChange={(e) => setFilters((f) => ({ ...f, orderId: e.target.value }))}
+              className="w-[160px]"
+            />
+
+            {/* ✅ Date range filters */}
+           
+            <Input
+              type="date"
+              value={filters.dateTo}
+              onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+              className="w-[170px]"
+              placeholder="Created To"
+            />
+
+            <Select
+              value={filters.orderStatus}
+              onValueChange={(value) => setFilters((f) => ({ ...f, orderStatus: value }))}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(statusMap).map(([key, s]) => (
+                  <SelectItem key={key} value={s.code.toString()}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.paymentStatus}
+              onValueChange={(value) =>
+                setFilters((f) => ({ ...f, paymentStatus: value }))
+              }
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Payment Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Unpaid</SelectItem>
+                <SelectItem value="1">Paid</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              onClick={() =>
+                setFilters({
+                  search: "",
+                  uid: "",
+                  phone: "",
+                  orderId: "",
+                  dateFrom: "",
+                  dateTo: "",
+                  slot: "",
+                  driverId: "",
+                  orderStatus: "",
+                  paymentStatus: "",
+                })
+              }
+            >
+              Reset Filters
+            </Button>
+          </div>
 
           <div className="flex items-center gap-2">
-  <label className="text-sm text-muted-foreground">Limit:</label>
-  <Input
-    type="number"
-    value={limit}
-    onChange={(e) => {
-      const val = parseInt(e.target.value) || 1;
-      setLimit(val);
-      setPage(1); 
-    }}
-    className="w-20"
-    min={1}
-  />
-</div>
-
+            <label className="text-sm text-muted-foreground">Limit:</label>
+            <Input
+              type="number"
+              value={limit}
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 1;
+                setLimit(val);
+                setPage(1);
+              }}
+              className="w-20"
+              min={1}
+            />
+          </div>
         </div>
 
         {/* Bulk status update */}
@@ -293,7 +370,7 @@ export default function OrdersComponent() {
 
         {/* Orders list */}
         <div className="flex flex-col gap-3">
-          {filteredOrders.map((order) => (
+          {orders.map((order) => (
             <OrderRow
               key={order.id}
               order={order}
@@ -304,7 +381,7 @@ export default function OrdersComponent() {
           ))}
         </div>
 
-        {/* Pagination  btn */}
+        {/* Pagination */}
         <div className="flex justify-between items-center mt-6">
           <Button
             variant="outline"
@@ -347,16 +424,30 @@ const OrderRow = React.memo(function OrderRow({
     <Card className="p-4 w-full min-h-[100px]">
       <div className="flex justify-between items-start gap-3 w-full flex-wrap sm:flex-nowrap">
         {/* Left Section */}
-        <div className="flex items-center gap-2 min-w-[140px]">
-          <Checkbox
+        <div className="flex items-center gap-14 min-w-[140px]">
+         <div className=" flex items-center gap-2">
+           <Checkbox
             checked={selected}
             onCheckedChange={() => toggleOrderSelection(order.id)}
           />
           <div>
             <p className="font-medium">{order?.firstName}</p>
             <p className="text-sm text-muted-foreground">
-              {dayjs(order.deliveryDate).format("DD MMM YYYY")}
+              {dayjs(order.createdAt).format("DD MMM YYYY")} {/* ✅ created date */}
             </p>
+          </div>
+         </div>
+          <div>
+            <p className="text-sm ">
+             Phone : {order.phone} 
+            </p>
+            <p className="text-sm ">
+             Address : {order.shippingAddress} 
+            </p>
+            <p className="text-sm ">
+                Payment Status :{order.paymentStatus}
+            </p>
+          
           </div>
         </div>
 
@@ -478,79 +569,74 @@ function OrderDetails({ order }: { order: Order }) {
         <strong>Total Received Amount:</strong> {order.totalReceivedAmount}
       </p>
       <p>
-        <strong>Order Status:</strong> {statusInfo?.label || order.orderStatus}
+        <strong>Shipping Address:</strong> {order.shippingAddress}
       </p>
       <p>
-        <strong>Delivery Date:</strong>{" "}
-        {dayjs(order.deliveryDate).format("DD MMM YYYY")}
+        <strong>Shipping City:</strong> {order.shippingCity}
       </p>
       <p>
-        <strong>Delivery Time:</strong>{" "}
-        {dayjs(order.deliveryFromTime, "HH:mm:ss").format("hh:mm A")} -{" "}
-        {dayjs(order.deliveryToTime, "HH:mm:ss").format("hh:mm A")}
+        <strong>Postal Code:</strong> {order.shippingPostalCode}
+      </p>
+      <p>
+        <strong>Shipping State:</strong> {order.shippingState}
+      </p>
+      <p>
+        <strong>Shipping Country:</strong> {order.shippingCountry}
+      </p>
+      <p>
+        <strong>Delivery Date:</strong> {order.deliveryDate}
+      </p>
+      <p>
+        <strong>Delivery Time:</strong> {order.deliveryFromTime} -{" "}
+        {order.deliveryToTime}
       </p>
       <p>
         <strong>Delivery Instruction:</strong>{" "}
         {order.deliveryInstruction || "N/A"}
       </p>
       <p>
-        <strong>Shipping Address:</strong> {order.shippingAddress},{" "}
-        {order.shippingCity}, {order.shippingState}, {order.shippingCountry},{" "}
-        {order.shippingPostalCode}
-      </p>
-      <p>
-        <strong>Driver:</strong> {order.driverName || "Not Assigned"}
+        <strong>Driver Name:</strong> {order.driverName || "N/A"}
       </p>
       <p>
         <strong>Driver Phone:</strong> {order.driverPhoneNumber || "N/A"}
       </p>
       <p>
-        <strong>Created At:</strong>{" "}
-        {dayjs(order.createdAt).format("DD MMM YYYY, hh:mm A")}
+        <strong>Status:</strong> {statusInfo?.label || order.orderStatus}
       </p>
       <p>
-        <strong>Updated At:</strong>{" "}
-        {dayjs(order.updatedAt).format("DD MMM YYYY, hh:mm A")}
+        <strong>Created At:</strong> {order.createdAt}
+      </p>
+      <p>
+        <strong>Updated At:</strong> {order.updatedAt}
       </p>
     </div>
   );
 }
 
 function OrderItems({ orderId }: { orderId: number }) {
-  const { data: items } = useQuery<OrderItem[]>({
-    queryKey: ["order-items", orderId],
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["orderItems", orderId],
     queryFn: () => fetchOrderItems(orderId),
   });
 
-  if (!items || items.length === 0)
-    return <p className="text-muted-foreground text-sm">No items available</p>;
+  if (isLoading) return <p>Loading items...</p>;
+  if (isError) return <p className="text-red-500">Failed to fetch items.</p>;
 
   return (
-    <div className="space-y-3">
-      {items.map((item) => (
+    <div className="space-y-2">
+      {data?.map((item) => (
         <div
           key={item.id}
-          className="flex flex-col sm:flex-row sm:justify-between sm:items-center border rounded-lg p-2 gap-2"
+          className="p-2 border rounded-md flex flex-col gap-1"
         >
-          <div>
-            <p className="font-medium">{item.product_name}</p>
-            <p className="text-xs text-muted-foreground">
-              {item.variant_name} • Qty: {item.product_qty}
-            </p>
-            {item.customize && (
-              <p className="text-xs italic text-muted-foreground">
-                Note: {item.customize}
-              </p>
-            )}
-          </div>
-          <div className="text-right">
-            <p className="font-semibold">₹{item.sale_price}</p>
-            {item.mrp !== item.sale_price && (
-              <p className="line-through text-xs text-muted-foreground">
-                ₹{item.mrp}
-              </p>
-            )}
-          </div>
+          <p>
+            <strong>{item.product_name}</strong> (x{item.product_qty})
+          </p>
+          <p>
+            Price: {item.sale_price} (MRP: {item.mrp})
+          </p>
+          <p>Variant: {item.variant_name}</p>
+          {item.customize && <p>Customize: {item.customize}</p>}
         </div>
       ))}
     </div>
