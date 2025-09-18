@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import axios from "axios";
 import dayjs from "dayjs";
+import { Loader } from "@/components/Loader";
 
 type Order = {
   id: number;
@@ -69,6 +70,11 @@ type OrderItem = {
   customize?: string;
 };
 
+const fetchSlots = async () => {
+  const res = await axios.get("https://api.apnifarming.com/user/admin/getAllslot.php");
+  return res.data?.data ?? [];
+};
+
 const fetchOrders = async ({
   queryKey,
 }: {
@@ -83,7 +89,7 @@ const fetchOrders = async ({
     ...(filters.uid ? { uid: String(filters.uid) } : {}),
     ...(filters.phone ? { phone: filters.phone } : {}),
     ...(filters.orderId ? { order_id: String(filters.orderId) } : {}),
-    ...(filters.dateFrom ? { date_from: filters.dateFrom } : {}), // ✅ API expects created_at range
+    ...(filters.dateFrom ? { date_from: filters.dateFrom } : {}),
     ...(filters.dateTo ? { date_to: filters.dateTo } : {}),
     ...(filters.slot ? { slot: filters.slot } : {}),
     ...(filters.driverId ? { driver_id: String(filters.driverId) } : {}),
@@ -155,6 +161,26 @@ const changeOrderStatuses = async ({
   );
 };
 
+const changePaymentStatus = async ({
+  orderId,
+  paymentStatus,
+  totalReceivedAmount,
+}: {
+  orderId: number;
+  paymentStatus: number;
+  totalReceivedAmount: number;
+}) => {
+  await axios.post("https://api.apnifarming.com/user/admin/changepaymentstaus.php", {
+    orders: [
+      {
+        order_id: orderId,
+        payment_status: paymentStatus,
+        total_received_amount: totalReceivedAmount,
+      },
+    ],
+  });
+};
+
 const statusMap: Record<string, { label: string; code: number }> = {
   "order processed": { label: "Order Processed", code: 1 },
   "order confirmed": { label: "Order Confirmed", code: 2 },
@@ -164,6 +190,11 @@ const statusMap: Record<string, { label: string; code: number }> = {
   cancelled: { label: "Cancelled", code: 9 },
 };
 
+const paymentStatusLabels: Record<string, string> = {
+  "0": "Unpaid",
+  "1": "Paid",
+  "2": "Pending",
+};
 const statusColors: Record<string, string> = {
   "order processed": "bg-blue-500 text-white",
   "order confirmed": "bg-indigo-500 text-white",
@@ -177,7 +208,7 @@ export default function OrdersComponent() {
   const queryClient = useQueryClient();
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(100);
 
   const [filters, setFilters] = useState({
     search: "",
@@ -192,7 +223,12 @@ export default function OrdersComponent() {
     paymentStatus: "",
   });
 
-  const { data, isLoading, isError } = useQuery({
+   const { data: slots = [], isLoading: slotLoading } = useQuery({
+    queryKey: ["slots"],
+    queryFn: fetchSlots,
+  });
+
+  const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: ["orders", page, limit, filters],
     queryFn: fetchOrders,
     placeholderData: { orders: [], totalPages: 1 },
@@ -212,13 +248,23 @@ export default function OrdersComponent() {
     },
   });
 
+  const PaymentMutation = useMutation({
+    mutationFn: changePaymentStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (error) => {
+      console.error("Failed to update payment status", error);
+    },
+  });
+
   const toggleOrderSelection = useCallback((id: number) => {
     setSelectedOrders((prev) =>
       prev.includes(id) ? prev.filter((oid) => oid !== id) : [...prev, id]
     );
   }, []);
 
-  if (isLoading) return <p>Loading orders...</p>;
+  if (isFetching) return <Loader/>;
   if (isError) return <p className="text-red-500">Failed to fetch orders.</p>;
 
   return (
@@ -252,8 +298,6 @@ export default function OrdersComponent() {
               className="w-[160px]"
             />
 
-            {/* ✅ Date range filters */}
-           
             <Input
               type="date"
               value={filters.dateTo}
@@ -290,8 +334,32 @@ export default function OrdersComponent() {
               <SelectContent>
                 <SelectItem value="0">Unpaid</SelectItem>
                 <SelectItem value="1">Paid</SelectItem>
+                <SelectItem value="2">Pending</SelectItem>
               </SelectContent>
             </Select>
+
+
+<Select
+  value={filters.slot}
+  onValueChange={(value) => setFilters((f) => ({ ...f, slot: value }))}
+>
+  <SelectTrigger className="w-[200px]">
+    <SelectValue placeholder="Filter by Slot" />
+  </SelectTrigger>
+  <SelectContent>
+    {slotLoading ? (
+      <SelectItem value="">Loading...</SelectItem>
+    ) : (
+      slots.map((slot: any) => (
+        <SelectItem key={slot.id} value={slot.start_time}>
+          {slot.title} ({slot.start_time} - {slot.end_time})
+        </SelectItem>
+      ))
+    )}
+  </SelectContent>
+</Select>
+
+
 
             <Button
               variant="outline"
@@ -330,45 +398,10 @@ export default function OrdersComponent() {
           </div>
         </div>
 
-        {/* Bulk status update */}
-        {selectedOrders.length > 0 && (
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <p className="text-sm text-muted-foreground">
-              {selectedOrders.length} orders selected
-            </p>
-            <Select
-              disabled={Ordermutation.isPending}
-              onValueChange={(value) => {
-                const statusEntry = statusMap[value];
-                if (!statusEntry) return;
-                Ordermutation.mutate({
-                  orderIds: selectedOrders,
-                  status: statusEntry.code,
-                });
-              }}
-            >
-              <SelectTrigger className="w-[200px]">
-                {Ordermutation.isPending ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Updating...</span>
-                  </div>
-                ) : (
-                  <SelectValue placeholder="Bulk update status" />
-                )}
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(statusMap).map(([key, s]) => (
-                  <SelectItem key={key} value={key}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
         {/* Orders list */}
+
+       
+
         <div className="flex flex-col gap-3">
           {orders.map((order) => (
             <OrderRow
@@ -377,6 +410,7 @@ export default function OrdersComponent() {
               selected={selectedOrders.includes(order.id)}
               toggleOrderSelection={toggleOrderSelection}
               mutation={Ordermutation}
+              paymentMutation={PaymentMutation}
             />
           ))}
         </div>
@@ -411,76 +445,69 @@ const OrderRow = React.memo(function OrderRow({
   selected,
   toggleOrderSelection,
   mutation,
+  paymentMutation,
 }: {
   order: Order;
   selected: boolean;
   toggleOrderSelection: (id: number) => void;
   mutation: any;
+  paymentMutation: any;
 }) {
   const statusKey = order?.orderStatus?.toLowerCase();
   const statusInfo = statusMap[statusKey];
+  const [openPayment, setOpenPayment] = useState(false);
+
+    const totalPrice = parseFloat(order.totalPrice) || 0;
+  const received = parseFloat(order.totalReceivedAmount) || 0;
+  const pending = Math.max(totalPrice - received, 0);
 
   return (
     <Card className="p-4 w-full min-h-[100px]">
-      <div className="flex justify-between items-start gap-3 w-full flex-wrap sm:flex-nowrap">
+      <div className="flex justify-between items-start gap-3 flex-wrap">
         {/* Left Section */}
         <div className="flex items-center gap-14 min-w-[140px]">
-         <div className=" flex items-center gap-2">
-           <Checkbox
-            checked={selected}
-            onCheckedChange={() => toggleOrderSelection(order.id)}
-          />
-          <div>
-            <p className="font-medium">{order?.firstName}</p>
-            <p className="text-sm text-muted-foreground">
-              {dayjs(order.createdAt).format("DD MMM YYYY")} {/* ✅ created date */}
-            </p>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={selected}
+              onCheckedChange={() => toggleOrderSelection(order.id)}
+            />
+            <div>
+              <p className="font-medium">{order?.firstName}</p>
+              <p className="text-sm text-muted-foreground">
+                {dayjs(order.createdAt).format("DD MMM YYYY")}
+              </p>
+            </div>
           </div>
-         </div>
           <div>
-            <p className="text-sm ">
-             Phone : {order.phone} 
+            <p className="text-sm">Phone: {order.phone}</p>
+            <p className="text-sm">Address: {order.shippingAddress}</p>
+              <p className="text-sm">
+              Payment Status: {paymentStatusLabels[order.paymentStatus] || order.paymentStatus}
             </p>
-            <p className="text-sm ">
-             Address : {order.shippingAddress} 
+            <p className="text-sm">
+              <strong>Pending:</strong> ₹{pending}
             </p>
-            <p className="text-sm ">
-                Payment Status :{order.paymentStatus}
-            </p>
-          
           </div>
         </div>
 
         {/* Right Section */}
-        <div className="flex flex-row justify-end items-center gap-2 flex-wrap sm:flex-nowrap">
-          <Badge
-            className={statusColors[statusKey] || "bg-gray-500 text-white"}
-          >
+        <div className="flex flex-row justify-end items-center gap-2 flex-wrap">
+          <Badge className={statusColors[statusKey] || "bg-gray-500 text-white"}>
             {statusInfo?.label || order?.orderStatus}
           </Badge>
 
+          {/* Change order status */}
           <Select
             value={statusKey}
             disabled={mutation.isPending}
             onValueChange={(value) => {
-              if (statusKey === value) return;
               const statusEntry = statusMap[value];
               if (!statusEntry) return;
-              mutation.mutate({
-                orderIds: [order.id],
-                status: statusEntry.code,
-              });
+              mutation.mutate({ orderIds: [order.id], status: statusEntry.code });
             }}
           >
-            <SelectTrigger className="w-[150px] sm:w-[160px]">
-              {mutation.isPending ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Updating...</span>
-                </div>
-              ) : (
-                <SelectValue placeholder="Change status" />
-              )}
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Change status" />
             </SelectTrigger>
             <SelectContent>
               {Object.entries(statusMap).map(([key, s]) => (
@@ -491,6 +518,24 @@ const OrderRow = React.memo(function OrderRow({
             </SelectContent>
           </Select>
 
+          {/* Update payment status via modal */}
+          <Dialog open={openPayment} onOpenChange={setOpenPayment}>
+          <DialogTrigger asChild>
+            <Button variant="outline">Update Payment</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Update Payment</DialogTitle>
+            </DialogHeader>
+            <PaymentForm
+              order={order}
+              paymentMutation={paymentMutation}
+              onClose={() => setOpenPayment(false)}
+            />
+          </DialogContent>
+        </Dialog>
+
+          {/* More Info */}
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" className="min-w-[100px]">
@@ -505,6 +550,7 @@ const OrderRow = React.memo(function OrderRow({
             </DialogContent>
           </Dialog>
 
+          {/* Items */}
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" className="min-w-[100px]">
@@ -524,95 +570,101 @@ const OrderRow = React.memo(function OrderRow({
   );
 });
 
-function OrderDetails({ order }: { order: Order }) {
-  const statusKey = order?.orderStatus?.toLowerCase();
-  const statusInfo = statusMap[statusKey];
+function PaymentForm({
+  order,
+  paymentMutation,
+  onClose,
+}: {
+  order: Order;
+  paymentMutation: any;
+  onClose: () => void;
+}) {
+  const totalPrice = parseFloat(order.totalPrice) || 0;
+  const alreadyReceived = parseFloat(order.totalReceivedAmount) || 0;
+  const pendingAmount = Math.max(totalPrice - alreadyReceived, 0);
+
+  const [status, setStatus] = useState(pendingAmount === 0 ? "1" : "0");
+  const [receivedAmount, setReceivedAmount] = useState(alreadyReceived.toString());
+
+  // Auto-fill receivedAmount if user selects Paid
+  const handleStatusChange = (val: string) => {
+    setStatus(val);
+    if (val === "1") {
+      setReceivedAmount(totalPrice.toString()); // fill total received amount
+    }
+  };
+
+  const handleSave = () => {
+    paymentMutation.mutate(
+      {
+        orderId: order.id,
+        paymentStatus: parseInt(status),
+        totalReceivedAmount: parseFloat(receivedAmount) || 0,
+      },
+      { onSuccess: onClose }
+    );
+  };
+
   return (
-    <div className="space-y-2 text-sm">
-      <p>
-        <strong>Order ID:</strong> {order.id}
-      </p>
-      <p>
-        <strong>User ID:</strong> {order.uid}
-      </p>
-      <p>
-        <strong>Customer Name:</strong> {order.firstName}
-      </p>
-      <p>
-        <strong>Email:</strong> {order.email || "N/A"}
-      </p>
-      <p>
-        <strong>Phone:</strong> {order.phone}
-      </p>
-      <p>
-        <strong>Payment Method:</strong> {order.paymentMethod}
-      </p>
-      <p>
-        <strong>Payment Status:</strong> {order.paymentStatus}
-      </p>
-      <p>
-        <strong>Total Price:</strong> {order.totalPrice}
-      </p>
-      <p>
-        <strong>Tax:</strong> {order.tax}
-      </p>
-      <p>
-        <strong>Discount:</strong> {order.discount}
-      </p>
-      <p>
-        <strong>Shipping Price:</strong> {order.shippingPrice}
-      </p>
-      <p>
-        <strong>Coupon Code:</strong> {order.couponCode || "N/A"}
-      </p>
-      <p>
-        <strong>Total Received Amount:</strong> {order.totalReceivedAmount}
-      </p>
-      <p>
-        <strong>Shipping Address:</strong> {order.shippingAddress}
-      </p>
-      <p>
-        <strong>Shipping City:</strong> {order.shippingCity}
-      </p>
-      <p>
-        <strong>Postal Code:</strong> {order.shippingPostalCode}
-      </p>
-      <p>
-        <strong>Shipping State:</strong> {order.shippingState}
-      </p>
-      <p>
-        <strong>Shipping Country:</strong> {order.shippingCountry}
-      </p>
-      <p>
-        <strong>Delivery Date:</strong> {order.deliveryDate}
-      </p>
-      <p>
-        <strong>Delivery Time:</strong> {order.deliveryFromTime} -{" "}
-        {order.deliveryToTime}
-      </p>
-      <p>
-        <strong>Delivery Instruction:</strong>{" "}
-        {order.deliveryInstruction || "N/A"}
-      </p>
-      <p>
-        <strong>Driver Name:</strong> {order.driverName || "N/A"}
-      </p>
-      <p>
-        <strong>Driver Phone:</strong> {order.driverPhoneNumber || "N/A"}
-      </p>
-      <p>
-        <strong>Status:</strong> {statusInfo?.label || order.orderStatus}
-      </p>
-      <p>
-        <strong>Created At:</strong> {order.createdAt}
-      </p>
-      <p>
-        <strong>Updated At:</strong> {order.updatedAt}
-      </p>
+    <div className="flex flex-col gap-4">
+      <Select value={status} onValueChange={handleStatusChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="0">Unpaid</SelectItem>
+          <SelectItem value="1">Paid</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* Only show input if status is Paid */}
+      {status === "1" && (
+        <Input
+          type="number"
+          value={pendingAmount}
+          onChange={(e) => setReceivedAmount(e.target.value)}
+          placeholder="Enter received amount"
+        />
+      )}
+
+      <div className="flex justify-end gap-3">
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} disabled={paymentMutation.isPending}>
+          {paymentMutation.isPending && (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          )}
+          Save
+        </Button>
+      </div>
     </div>
   );
 }
 
+
+
+
+
+// ✅ Order Details
+function OrderDetails({ order }: { order: Order }) {
+  return (
+    <div className="flex flex-col gap-2 text-sm">
+      <p><strong>Order ID:</strong> {order.id}</p>
+      <p><strong>Name:</strong> {order.firstName}</p>
+      <p><strong>Phone:</strong> {order.phone}</p>
+      <p><strong>Email:</strong> {order.email ?? "-"}</p>
+      <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
+      <p><strong>Total Price:</strong> ₹{order.totalPrice}</p>
+      <p><strong>Received Amount:</strong> ₹{order.totalReceivedAmount}</p>
+      <p><strong>Address:</strong> {order.shippingAddress}, {order.shippingCity}</p>
+      <p><strong>Status:</strong> {order.orderStatus}</p>
+      <p><strong>Created At:</strong> {dayjs(order.createdAt).format("DD MMM YYYY HH:mm")}</p>
+    </div>
+  );
+}
+
+// ✅ Order Items
 function OrderItems({ orderId }: { orderId: number }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["orderItems", orderId],
@@ -620,25 +672,25 @@ function OrderItems({ orderId }: { orderId: number }) {
   });
 
   if (isLoading) return <p>Loading items...</p>;
-  if (isError) return <p className="text-red-500">Failed to fetch items.</p>;
+  if (isError) return <p className="text-red-500">Failed to fetch items</p>;
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {data?.map((item) => (
         <div
           key={item.id}
-          className="p-2 border rounded-md flex flex-col gap-1"
+          className="p-3 border rounded-md flex justify-between items-center"
         >
-          <p>
-            <strong>{item.product_name}</strong> (x{item.product_qty})
-          </p>
-          <p>
-            Price: {item.sale_price} (MRP: {item.mrp})
-          </p>
-          <p>Variant: {item.variant_name}</p>
-          {item.customize && <p>Customize: {item.customize}</p>}
+          <div>
+            <p className="font-medium">{item.product_name}</p>
+            <p className="text-sm text-muted-foreground">
+              Qty: {item.product_qty} | Variant: {item.variant_name}
+            </p>
+          </div>
+          <p className="font-semibold">₹{item.sale_price}</p>
         </div>
       ))}
     </div>
   );
 }
+

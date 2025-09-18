@@ -1,5 +1,5 @@
 "use client"
-import { Home, Inbox, CalendarSearch, Search, Settings, User2, ChevronUp, Plus, Projector, ChevronDown, ListOrderedIcon, CastleIcon ,UserLock, UserRoundPlus} from 'lucide-react'
+import { Home, Inbox, CalendarSearch, Search, Settings, User2, ChevronUp, Plus, Projector, ChevronDown, ListOrderedIcon, CastleIcon ,UserLock, UserRoundPlus, Tag, PlusCircle} from 'lucide-react'
 import { UserRound } from 'lucide-react';
 import React from 'react'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from './ui/sidebar'
@@ -71,6 +71,7 @@ const AppSideBar = () => {
         { label: "Bannners", links: [{ title: "See All Banners", url: "/all-banners", icon: CastleIcon }, { title: "Add Banner", url: "/add-banner", icon: Plus }] },
         { label: "Manage Orders", links: [{ title: "Create new Order", url: "/create-order", icon: Plus }] },
         { label: "Manage Driver", links: [{ title: "See All Driver", url: "/all-driver", icon: UserRound },{ title: "Add Driver", url: "/add-driver", icon: UserRoundPlus }] },
+        { label: "Manage Coupon", links: [{ title: "See All Coupon", url: "/all-coupon", icon: Tag },{ title: "Add Coupon", url: "/add-coupon", icon: PlusCircle }] },
       ].map((section, idx) => (
         <Collapsible defaultOpen key={idx} className="group/collapsible">
           <SidebarGroup>
