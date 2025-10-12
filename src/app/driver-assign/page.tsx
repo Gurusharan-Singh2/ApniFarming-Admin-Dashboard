@@ -300,6 +300,7 @@ export default function DriverAssignPage() {
                     <p className="text-sm text-muted-foreground">
                       {dayjs(order.delivery_date).format("DD MMM YYYY")}
                     </p>
+                    <p className="text-sm text-muted-foreground">Order id :{order.id}</p>
                     <p className="text-xs text-muted-foreground">
                       Slot: {order.delivery_from_time} - {order.delivery_to_time}
                     </p>

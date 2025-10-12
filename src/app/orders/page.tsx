@@ -4,6 +4,16 @@ import React, { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import axios from "axios";
+
+const doc = new jsPDF();
+autoTable(doc, {
+  head: [["Order ID", "Name"]],
+  body: [[1, "John"]],
+});
+
 import {
   Select,
   SelectContent,
@@ -22,7 +32,6 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
-import axios from "axios";
 import dayjs from "dayjs";
 import { Loader } from "@/components/Loader";
 
@@ -223,6 +232,145 @@ export default function OrdersComponent() {
     paymentStatus: "",
   });
 
+const [isPdfLoading, setIsPdfLoading] = useState(false);
+
+
+const handleDownloadPDF = async (filters: any, limit: number) => {
+  try {
+      setIsPdfLoading(true);
+    // Build query params
+    const params = new URLSearchParams({
+      page: "1",
+      limit: String(limit),
+      ...(filters.search ? { search: filters.search } : {}),
+      ...(filters.uid ? { uid: String(filters.uid) } : {}),
+      ...(filters.phone ? { phone: filters.phone } : {}),
+      ...(filters.orderId ? { order_id: String(filters.orderId) } : {}),
+      ...(filters.dateFrom ? { date_from: filters.dateFrom } : {}),
+      ...(filters.dateTo ? { date_to: filters.dateTo } : {}),
+      ...(filters.slot ? { slot: filters.slot } : {}),
+      ...(filters.driverId ? { driver_id: String(filters.driverId) } : {}),
+      ...(filters.orderStatus ? { order_status: String(filters.orderStatus) } : {}),
+      ...(filters.paymentStatus ? { payment_status: String(filters.paymentStatus) } : {}),
+    });
+
+    // Fetch orders
+    const response = await axios.get(
+      `https://api.apnifarming.com/user/admin/orderlist.php?${params.toString()}`
+    );
+    const orders = response.data.orders ?? [];
+    if (!orders.length) {
+      alert("No orders found for selected filters");
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "A4" });
+
+    // Header
+    doc.setFontSize(18);
+    doc.text("ApniFarming Orders Report", 40, 40);
+   
+    let startY = 80;
+
+    for (const order of orders) {
+      const fromTime = dayjs(`${order.delivery_date} ${order.delivery_from_time}`, "YYYY-MM-DD HH:mm:ss").format("hh:mm A");
+const toTime = dayjs(`${order.delivery_date} ${order.delivery_to_time}`, "YYYY-MM-DD HH:mm:ss").format("hh:mm A");
+
+      
+      // Fetch order items
+      const itemsResponse = await axios.post(
+        "https://api.apnifarming.com/user/admin/orderdetail.php",
+        { order_id: order.id }
+      );
+      const items: OrderItem[] = itemsResponse.data.items ?? [];
+
+      // --- Order Info Table ---
+      autoTable(doc, {
+        startY,
+        theme: "plain",
+        styles: { fontSize: 8, cellPadding: 2 },
+        margin: { left: 20, right: 20 },
+        body: [
+          [
+            { content: `Order ID: ${order.id}`, styles: { fontStyle: "bold" } },
+            { content: `Customer: ${order.first_name || "-"}` },
+            { content: `Address: ${order.shipping_address+ " "+order.shipping_city
+ || "-"}` },
+    { content: `Total Pyament: ${order.
+total_price}` },
+          ],
+          [
+            { content: `Phone: ${order.phone || "-"}` },
+            { content: `Delivery_Date: ${order.
+delivery_date
+ || "-"}` },
+            { content: `Payment: ${
+              order.payment_status === "1"
+                ? "Paid"
+                : order.payment_status === "0"
+                ? "Unpaid"
+                : "Pending"
+            }` },
+         
+          ],
+          [
+            { content: `Driver: ${order.
+driver_name || "not-assigned-yet"} (${order.
+driver_phone_number || "-"})` },
+            { content: `Status: ${order.order_status}` },
+ 
+// Use in PDF content
+{
+  content: `Delivery Time: ${fromTime} - ${toTime}`
+}
+          ],
+        ],
+      });
+
+      startY = (doc as any).lastAutoTable?.finalY + 10;
+
+      // --- Items Table ---
+      const tableColumn = ["Product Name", "Qty", "Variant", "Customize", "Price"];
+      const tableRows = items.map((item) => [
+        item.product_name,
+        item.product_qty,
+        item.variant_name,
+        item.customize || "-",
+        `₹${item.sale_price}`,
+      ]);
+
+      autoTable(doc, {
+        startY,
+        head: [tableColumn],
+        body: tableRows,
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [67, 160, 71], textColor: 255 },
+        margin: { left: 40, right: 40 },
+      });
+
+      startY = (doc as any).lastAutoTable?.finalY + 20;
+
+      // Page break
+      if (startY > doc.internal.pageSize.getHeight() - 80) {
+        doc.addPage();
+        startY = 40;
+      }
+    }
+const today = dayjs().format("YYYY-MM-DD"); // or use any format you like
+doc.save(`orders-report-${today}.pdf`);
+    doc.save("orders-report.pdf");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to generate PDF");
+  }finally{
+    setIsPdfLoading(false);
+  }
+};
+
+
+
+
    const { data: slots = [], isLoading: slotLoading } = useQuery({
     queryKey: ["slots"],
     queryFn: fetchSlots,
@@ -248,6 +396,11 @@ export default function OrdersComponent() {
     },
   });
 
+
+  
+
+
+
   const PaymentMutation = useMutation({
     mutationFn: changePaymentStatus,
     onSuccess: () => {
@@ -264,6 +417,17 @@ export default function OrdersComponent() {
     );
   }, []);
 
+
+  if (isPdfLoading) return <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+    <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-4 shadow-lg">
+      {/* Tailwind Loader */}
+      <div className="w-12 h-12 border-4 border-t-green-600 border-gray-200 rounded-full animate-spin"></div>
+
+      {/* Text */}
+      <p className="text-gray-700 font-medium text-lg">Generating PDF...</p>
+      <p className="text-gray-500 text-sm">Please wait while your report is being prepared.</p>
+    </div>
+  </div>;
   if (isFetching) return <Loader/>;
   if (isError) return <p className="text-red-500">Failed to fetch orders.</p>;
 
@@ -380,6 +544,13 @@ export default function OrdersComponent() {
             >
               Reset Filters
             </Button>
+            <Button
+              onClick={() => handleDownloadPDF(filters, limit)}
+              className="bg-green-600 text-white"
+            >
+  Download PDF
+</Button>
+
           </div>
 
           <div className="flex items-center gap-2">
@@ -473,6 +644,8 @@ const OrderRow = React.memo(function OrderRow({
             />
             <div>
               <p className="font-medium">{order?.firstName}</p>
+              <p className="text-sm text-muted-foreground">Order id :{order.id}</p>
+
               <p className="text-sm text-muted-foreground">
                 {dayjs(order.createdAt).format("DD MMM YYYY")}
               </p>
@@ -648,6 +821,7 @@ function PaymentForm({
 
 // ✅ Order Details
 function OrderDetails({ order }: { order: Order }) {
+  
   return (
     <div className="flex flex-col gap-2 text-sm">
       <p><strong>Order ID:</strong> {order.id}</p>
@@ -658,7 +832,9 @@ function OrderDetails({ order }: { order: Order }) {
       <p><strong>Total Price:</strong> ₹{order.totalPrice}</p>
       <p><strong>Received Amount:</strong> ₹{order.totalReceivedAmount}</p>
       <p><strong>Address:</strong> {order.shippingAddress}, {order.shippingCity}</p>
-      <p><strong>Status:</strong> {order.orderStatus}</p>
+      <p><strong>DriverID:</strong> {order.driverId}</p>
+      <p><strong>DriverName:</strong> {order.driverName}</p>
+      <p><strong>Driver Phone Number:</strong> {order.driverPhoneNumber}</p>
       <p><strong>Created At:</strong> {dayjs(order.createdAt).format("DD MMM YYYY HH:mm")}</p>
     </div>
   );
