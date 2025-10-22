@@ -48,7 +48,6 @@ const fetchDrivers = async (): Promise<Driver[]> => {
   );
 };
 
-// ✅ Fetch slots
 const fetchSlots = async () => {
   const res = await axios.get(
     "https://api.apnifarming.com/user/admin/getAllslot.php"
@@ -80,18 +79,21 @@ export default function DriverAssignPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(100);
 
-  const [assignmentFilter, setAssignmentFilter] = useState<string>("all");
+  // Default to show unassigned orders
+  const [assignmentFilter, setAssignmentFilter] = useState<string>("unassigned");
   const [driverFilter, setDriverFilter] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<string>("");
 
-  // ✅ New slot filter
-  const [slotFilter, setSlotFilter] = useState<string>("");
+  const [slotFilter, setSlotFilter] = useState<string>("all");
 
   const { data, isLoading: ordersLoading } = useQuery({
     queryKey: ["orders", page, limit],
     queryFn: fetchOrders,
     staleTime: 0,
   });
+
+  console.log(data);
+  
 
   const { data: drivers = [], isLoading: driversLoading } = useQuery({
     queryKey: ["drivers"],
@@ -117,18 +119,23 @@ export default function DriverAssignPage() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o: any) => {
+      // Assignment filter
       if (assignmentFilter === "assigned" && !o.driver_name) return false;
       if (assignmentFilter === "unassigned" && o.driver_name) return false;
+
+      // Driver filter
       if (driverFilter !== "all" && o.driver_id?.toString() !== driverFilter)
         return false;
 
+      // Date filter
       if (
         selectedDate &&
         !dayjs(o.delivery_date).isSame(dayjs(selectedDate), "day")
       )
         return false;
 
-      if (slotFilter && o.delivery_from_time !== slotFilter) return false;
+      // Slot filter
+      if (slotFilter !== "all" && o.delivery_from_time !== slotFilter) return false;
 
       return true;
     });
@@ -163,6 +170,7 @@ export default function DriverAssignPage() {
         <CardTitle>Assign Drivers to Orders</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Driver Assign & Limit */}
         <div className="mb-4 flex flex-wrap gap-4 items-center">
           <Select value={selectedDriver} onValueChange={setSelectedDriver}>
             <SelectTrigger className="w-full sm:w-[250px]">
@@ -217,7 +225,9 @@ export default function DriverAssignPage() {
           </div>
         </div>
 
+        {/* Filters */}
         <div className="flex gap-4 mb-4 flex-wrap">
+          {/* Assignment filter */}
           <Select value={assignmentFilter} onValueChange={setAssignmentFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by Status" />
@@ -229,6 +239,7 @@ export default function DriverAssignPage() {
             </SelectContent>
           </Select>
 
+          {/* Driver filter */}
           <Select value={driverFilter} onValueChange={setDriverFilter}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Filter by Driver" />
@@ -243,21 +254,20 @@ export default function DriverAssignPage() {
             </SelectContent>
           </Select>
 
-          {/* ✅ Slot filter */}
+          {/* Slot filter */}
           <Select value={slotFilter} onValueChange={setSlotFilter}>
-  <SelectTrigger className="w-[220px]">
-    <SelectValue placeholder="Filter by Slot" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">All Slots</SelectItem>
-    {slots.map((slot: any) => (
-      <SelectItem key={slot.id} value={slot.start_time}>
-        {slot.title} ({slot.start_time} - {slot.end_time})
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Filter by Slot" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Slots</SelectItem>
+              {slots.map((slot: any) => (
+                <SelectItem key={slot.id} value={slot.start_time}>
+                  {slot.title} ({slot.start_time} - {slot.end_time})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {/* Date Filter */}
           <div className="flex gap-4">
@@ -282,7 +292,7 @@ export default function DriverAssignPage() {
           <p className="text-sm">Select All Orders (Filtered)</p>
         </div>
 
-        {/* Orders */}
+        {/* Orders List */}
         <div className="flex flex-col gap-3 mb-4 overflow-y-auto">
           {filteredOrders.map((order: any) => (
             <Card
@@ -300,10 +310,14 @@ export default function DriverAssignPage() {
                     <p className="text-sm text-muted-foreground">
                       {dayjs(order.delivery_date).format("DD MMM YYYY")}
                     </p>
-                    <p className="text-sm text-muted-foreground">Order id :{order.id}</p>
+                    <p className="text-sm text-muted-foreground">Order id: {order.id}</p>
                     <p className="text-xs text-muted-foreground">
                       Slot: {order.delivery_from_time} - {order.delivery_to_time}
                     </p>
+                  </div>
+                  <div>
+                    <p>Address : {order.shipping_address
+} {order.shipping_city}  </p>
                   </div>
                   <div>
                     <p className="text-base">
