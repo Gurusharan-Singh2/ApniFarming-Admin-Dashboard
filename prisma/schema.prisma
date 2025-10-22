@@ -1,0 +1,438 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Notification_Tokens {
+  id      Int     @id @default(autoincrement())
+  user_id String? @unique(map: "user_id") @db.VarChar(40)
+  token   String  @db.VarChar(500)
+}
+
+model admins {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  first_name String    @db.VarChar(255)
+  last_name  String    @db.VarChar(255)
+  email      String    @unique(map: "admins_email_unique") @db.VarChar(100)
+  role       String?   @db.VarChar(255)
+  password   String    @db.VarChar(200)
+  code       String    @db.VarChar(200)
+  status     Int       @default(1)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+}
+
+model banners {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title       String?   @db.VarChar(100)
+  subtitle    String?   @db.VarChar(100)
+  sort_order  Int       @default(0) @db.UnsignedInt
+  image_path  String?   @db.VarChar(255)
+  created_at  DateTime? @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+  link_type   String    @db.VarChar(100)
+  category_id Int?
+  pid         String?   @db.VarChar(1000)
+  url         String?   @db.VarChar(200)
+}
+
+model categories {
+  id                 BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  name               String?              @db.VarChar(50)
+  sort_order         Int                  @default(0) @db.UnsignedInt
+  image              String?              @db.VarChar(255)
+  parent_id          Int                  @default(0)
+  created_at         DateTime?            @default(now()) @db.Timestamp(0)
+  updated_at         DateTime?            @db.Timestamp(0)
+  product_categories product_categories[]
+}
+
+model coupons {
+  id                  BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  code                String       @unique(map: "coupons_code_unique") @db.VarChar(50)
+  start_date          DateTime     @db.Date
+  end_date            DateTime     @db.Date
+  type                coupons_type
+  value               Decimal      @db.Decimal(10, 2)
+  minorder            Int
+  maxdiscout          Int
+  no_use_per_customer Int
+  total_avialable_qty Int
+  status              Int          @default(1) @db.TinyInt
+  created_at          DateTime?    @db.Timestamp(0)
+  updated_at          DateTime?    @db.Timestamp(0)
+}
+
+model customers {
+  id         BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  first_name String      @db.VarChar(255)
+  email      String?     @unique(map: "customers_email_unique") @db.VarChar(100)
+  phone      String?     @db.VarChar(255)
+  password   String      @db.VarChar(200)
+  status     Int         @default(1)
+  created_at DateTime?   @db.Timestamp(0)
+  updated_at DateTime?   @db.Timestamp(0)
+  wishlists  wishlists[]
+}
+
+model delivery_methods {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name           String    @db.VarChar(255)
+  description    String?   @db.VarChar(255)
+  amount         Decimal   @default(0.00) @db.Decimal(10, 2)
+  sort_order     Int       @default(0)
+  status         Int       @default(1)
+  default_method Int       @default(0)
+  created_at     DateTime? @db.Timestamp(0)
+  updated_at     DateTime? @db.Timestamp(0)
+}
+
+model faqs {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  question   String    @db.VarChar(255)
+  answer     String    @db.Text
+  sort_order Int       @default(0)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+}
+
+model jobs {
+  id           BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  queue        String @db.VarChar(255)
+  payload      String @db.LongText
+  attempts     Int    @db.UnsignedTinyInt
+  reserved_at  Int?   @db.UnsignedInt
+  available_at Int    @db.UnsignedInt
+  created_at   Int    @db.UnsignedInt
+
+  @@index([queue], map: "jobs_queue_index")
+}
+
+model migrations {
+  id        Int    @id @default(autoincrement()) @db.UnsignedInt
+  migration String @db.VarChar(255)
+  batch     Int
+}
+
+model newsletters {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  email      String?   @db.VarChar(100)
+  status     Int       @default(1)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+}
+
+model order_items {
+  id           Int     @id @default(autoincrement())
+  order_id     Int
+  product_id   Int
+  product_name String  @db.VarChar(400)
+  product_qty  Decimal @db.Decimal(20, 0)
+  variant_name String  @db.VarChar(200)
+  variant_id   Int
+  customize    String? @db.VarChar(200)
+  mrp          Decimal @db.Decimal(10, 2)
+  sale_price   Decimal @db.Decimal(10, 2)
+}
+
+model orders {
+  id                   BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  uid                  Int
+  first_name           String    @db.VarChar(255)
+  email                String?   @db.VarChar(255)
+  phone                String?   @db.VarChar(255)
+  payment_method       String    @db.VarChar(255)
+  total_price          Decimal   @db.Decimal(10, 2)
+  tax                  Decimal   @default(0.00) @db.Decimal(10, 2)
+  shipping_price       Decimal   @default(0.00) @db.Decimal(10, 2)
+  coupon_code          String    @db.VarChar(200)
+  discount             Decimal   @db.Decimal(10, 2)
+  shipping_address     String?   @db.VarChar(255)
+  shipping_city        String?   @db.VarChar(255)
+  shipping_postalcode  String?   @db.VarChar(255)
+  time_slot_id         Int       @default(0) @db.TinyInt
+  delivery_date        String    @db.VarChar(100)
+  delivery_from_time   String    @db.VarChar(100)
+  delivery_to_time     String    @db.VarChar(100)
+  shipping_state       String?   @db.VarChar(255)
+  shipping_country     String?   @db.VarChar(255)
+  driver_id            Int?
+  order_status         Int       @db.TinyInt
+  payment_status       Int       @default(0) @db.TinyInt
+  total_recived_amount Decimal   @db.Decimal(10, 2)
+  created_at           DateTime? @default(now()) @db.DateTime(0)
+  updated_at           DateTime? @default(now()) @db.Timestamp(0)
+  delivey_instruction  String    @db.VarChar(500)
+  subscription_id      Int?
+}
+
+model personal_access_tokens {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tokenable_type String    @db.VarChar(255)
+  tokenable_id   BigInt    @db.UnsignedBigInt
+  name           String    @db.VarChar(255)
+  token          String    @unique(map: "personal_access_tokens_token_unique") @db.VarChar(64)
+  abilities      String?   @db.Text
+  last_used_at   DateTime? @db.Timestamp(0)
+  expires_at     DateTime? @db.Timestamp(0)
+  created_at     DateTime? @db.Timestamp(0)
+  updated_at     DateTime? @db.Timestamp(0)
+
+  @@index([tokenable_type, tokenable_id], map: "personal_access_tokens_tokenable_type_tokenable_id_index")
+}
+
+model produc_tags {
+  id     Int    @id @default(autoincrement())
+  pid    Int
+  tags   String @db.VarChar(500)
+  status Int    @default(1) @db.TinyInt
+}
+
+model product_categories {
+  id          BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id  BigInt     @db.UnsignedBigInt
+  category_id BigInt     @db.UnsignedBigInt
+  created_at  DateTime?  @db.Timestamp(0)
+  updated_at  DateTime?  @db.Timestamp(0)
+  categories  categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "product_categories_category_id_foreign")
+  products    products   @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "product_categories_product_id_foreign")
+
+  @@index([category_id], map: "product_categories_category_id_foreign")
+  @@index([product_id], map: "product_categories_product_id_foreign")
+}
+
+model product_images {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  path       String    @db.VarChar(255)
+  product_id BigInt    @db.UnsignedBigInt
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  products   products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "product_images_product_id_foreign")
+
+  @@index([product_id], map: "product_images_product_id_foreign")
+}
+
+model product_reviews {
+  id         Int       @id @default(autoincrement())
+  uid        Int
+  order_id   Int
+  product_id Int
+  rating     Int
+  review     String?   @db.VarChar(500)
+  created_at DateTime? @default(now()) @db.DateTime(0)
+}
+
+model product_variants {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  option     String?   @db.VarChar(255)
+  value      String?   @db.VarChar(255)
+  quantity   Int
+  product_id BigInt    @db.UnsignedBigInt
+  mrp_price  Float
+  sell_price Float
+  in_stock   Int       @db.TinyInt
+  max_order  Int?
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  products   products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "product_variants_product_id_foreign")
+
+  @@index([product_id], map: "product_variants_product_id_foreign")
+}
+
+model products {
+  id                                                             BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  name                                                           String               @db.VarChar(255)
+  image                                                          String               @db.VarChar(200)
+  tagline                                                        String               @db.VarChar(200)
+  category_id                                                    Int
+  quantity                                                       Int                  @default(0)
+  in_stock                                                       Int                  @default(0)
+  featured                                                       Int                  @default(0)
+  new_arrival                                                    Int                  @default(0)
+  sort_order                                                     Int                  @default(0)
+  description                                                    String?              @db.Text
+  subtag                                                         Int                  @default(0) @db.TinyInt
+  status                                                         Int                  @default(1) @db.TinyInt
+  created_at                                                     DateTime?            @db.Timestamp(0)
+  updated_at                                                     DateTime?            @db.Timestamp(0)
+  product_categories                                             product_categories[]
+  product_images                                                 product_images[]
+  product_variants                                               product_variants[]
+  related_products_related_products_product_idToproducts         related_products[]   @relation("related_products_product_idToproducts")
+  related_products_related_products_related_product_idToproducts related_products[]   @relation("related_products_related_product_idToproducts")
+  wishlists                                                      wishlists[]
+}
+
+model related_products {
+  id                                                     BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id                                             BigInt    @db.UnsignedBigInt
+  related_product_id                                     BigInt    @db.UnsignedBigInt
+  created_at                                             DateTime? @db.Timestamp(0)
+  updated_at                                             DateTime? @db.Timestamp(0)
+  products_related_products_product_idToproducts         products  @relation("related_products_product_idToproducts", fields: [product_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "related_products_product_id_foreign")
+  products_related_products_related_product_idToproducts products  @relation("related_products_related_product_idToproducts", fields: [related_product_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "related_products_related_product_id_foreign")
+
+  @@index([product_id], map: "related_products_product_id_foreign")
+  @@index([related_product_id], map: "related_products_related_product_id_foreign")
+}
+
+model sliders {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title      String?   @db.VarChar(100)
+  subtitle   String?   @db.VarChar(100)
+  sort_order Int       @default(0) @db.UnsignedInt
+  image_path String?   @db.VarChar(255)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+}
+
+model slots {
+  id         Int       @id @default(autoincrement())
+  title      String    @db.VarChar(100)
+  start_time DateTime  @db.Time(0)
+  end_time   DateTime  @db.Time(0)
+  status     Boolean?  @default(true)
+  created_at DateTime? @default(now()) @db.DateTime(0)
+  updated_at DateTime? @default(now()) @db.DateTime(0)
+}
+
+model stores {
+  id                 BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name               String?   @db.VarChar(100)
+  address            String?   @db.Text
+  state              String?   @db.VarChar(30)
+  country            String?   @db.VarChar(100)
+  geocode_latitude   String?   @db.VarChar(20)
+  geocode_longitude  String?   @db.VarChar(20)
+  email              String?   @db.VarChar(50)
+  phone              String?   @db.VarChar(20)
+  opening_times      String?   @db.VarChar(200)
+  aboutus            String?   @db.Text
+  mission            String?   @db.Text
+  vision             String?   @db.Text
+  terms              String?   @db.Text
+  privacy_policy     String?   @db.Text
+  return_policy      String?   @db.Text
+  refund_policy      String?   @db.Text
+  favicon_path       String?   @db.VarChar(50)
+  logo_path          String?   @db.VarChar(50)
+  footer_logo_path   String?   @db.VarChar(50)
+  meta_title         String?   @db.VarChar(100)
+  meta_description   String?   @db.VarChar(200)
+  meta_tag_keywords  String?   @db.Text
+  instagram_link     String?   @db.VarChar(150)
+  facebook_link      String?   @db.VarChar(200)
+  twitter_link       String?   @db.VarChar(200)
+  tiktok_link        String?   @db.VarChar(200)
+  payment_pub_key    String?   @db.VarChar(200)
+  payment_secret_key String?   @db.VarChar(200)
+  created_at         DateTime? @db.Timestamp(0)
+  updated_at         DateTime? @db.Timestamp(0)
+}
+
+model subscription_items {
+  id              Int     @id @default(autoincrement())
+  subscription_id Int
+  productid       Int
+  varient_id      Int
+  quantity        Decimal @db.Decimal(5, 2)
+  cost            Decimal @db.Decimal(5, 2)
+  tax             Decimal @db.Decimal(5, 2)
+  shipping        Decimal @db.Decimal(5, 2)
+}
+
+model subscription_skips {
+  id              Int       @id @default(autoincrement())
+  subscription_id Int
+  skip_date       DateTime  @db.Date
+  reason          String?   @db.Text
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+}
+
+model subscriptions {
+  id              Int                     @id @default(autoincrement())
+  user_id         Int
+  frequency       subscriptions_frequency
+  start_date      DateTime                @db.Date
+  billing_days    Int
+  address_id      Int
+  time_slot_id    Int
+  next_order_date DateTime                @db.Date
+  status          subscriptions_status?   @default(active)
+  created_at      DateTime?               @default(now()) @db.Timestamp(0)
+}
+
+model tbl_driver {
+  id                  Int    @id @default(autoincrement())
+  driver_name         String @db.VarChar(200)
+  driver_phone_number String @db.VarChar(200)
+  driver_password     String @db.VarChar(200)
+  status              Int    @default(1) @db.TinyInt
+}
+
+model tbl_order_status {
+  id                Int    @id @default(autoincrement())
+  order_status_type String @db.VarChar(200)
+  status            Int    @default(1) @db.TinyInt
+}
+
+model user_addresslist {
+  id              Int    @id @default(autoincrement())
+  uid             Int
+  street_address  String @db.VarChar(500)
+  landmark        String @db.VarChar(200)
+  city            String @db.VarChar(100)
+  state           String @db.VarChar(100)
+  address_title   String @db.VarChar(100)
+  default_address Int    @default(0) @db.TinyInt
+  pincode         Int
+  status          Int    @default(1) @db.TinyInt
+}
+
+model users {
+  id         Int       @id @default(autoincrement())
+  name       String    @db.VarChar(100)
+  phone      String    @unique(map: "phone") @db.VarChar(15)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+}
+
+model wishlist {
+  id        Int @id @default(autoincrement())
+  userId    Int
+  productId Int
+
+  @@unique([userId, productId], map: "unique_wishlist")
+}
+
+model wishlists {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id  BigInt    @db.UnsignedBigInt
+  customer_id BigInt    @db.UnsignedBigInt
+  created_at  DateTime? @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+  customers   customers @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "wishlists_customer_id_foreign")
+  products    products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "wishlists_product_id_foreign")
+
+  @@index([customer_id], map: "wishlists_customer_id_foreign")
+  @@index([product_id], map: "wishlists_product_id_foreign")
+}
+
+enum subscriptions_frequency {
+  daily
+  alternate
+}
+
+enum coupons_type {
+  fixed
+  percentage
+}
+
+enum subscriptions_status {
+  active
+  paused
+  cancelled
+}

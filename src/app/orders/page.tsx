@@ -382,6 +382,19 @@ doc.save(`orders-report-${today}.pdf`);
     placeholderData: { orders: [], totalPages: 1 },
   });
 
+
+  const fetchDrivers = async () => {
+  const res = await axios.get("https://api.apnifarming.com/user/admin/getalldriverlist.php");
+  return res.data?.drivers ?? [];
+};
+
+const { data: drivers = [], isLoading: driversLoading } = useQuery({
+  queryKey: ["drivers"],
+  queryFn: fetchDrivers,
+});
+
+
+
   const orders = data?.orders ?? [];
   const totalPages = data?.totalPages ?? 1;
 
@@ -501,6 +514,32 @@ doc.save(`orders-report-${today}.pdf`);
                 <SelectItem value="2">Pending</SelectItem>
               </SelectContent>
             </Select>
+
+
+<Select
+  value={filters.driverId || "all"} // use "all" as default
+  onValueChange={(value) =>
+    setFilters((f) => ({ ...f, driverId: value === "all" ? "" : value }))
+  }
+>
+  <SelectTrigger className="w-[200px]">
+    <SelectValue placeholder="Filter by Driver" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="all">All Drivers</SelectItem>
+    {driversLoading
+      ? <SelectItem value="loading">Loading...</SelectItem>
+      : drivers.map((driver: any) => (
+          <SelectItem key={driver.id} value={driver.id.toString()}>
+            {driver.driver_name}
+          </SelectItem>
+        ))
+    }
+  </SelectContent>
+</Select>
+
+
+
 
 
 <Select

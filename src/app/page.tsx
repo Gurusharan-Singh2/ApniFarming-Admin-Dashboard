@@ -1,46 +1,125 @@
-import { AreaChartt } from '@/components/charts/AreaChart';
-import { DailyOrders } from '@/components/charts/DailyOrders';
-import { RevenueLineChart } from '@/components/charts/RevenueLineChart';
-import {  RevenuePieChart } from '@/components/charts/RevenuePieChart';
-import { EmployeeCards } from '@/components/EployeeInfo';
-import TodoList from '@/components/TodoList';
-import React from 'react';
+"use client";
 
-const Home = () => {
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { adminLoginAction } from "@/actions/admin/adminLogin";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
+
+export default function AdminLoginPage() {
+  const router = useRouter();
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [checkingToken, setCheckingToken] = useState<boolean>(true); // new state
+
+  // Check token on mount
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+
+    if (token) {
+      // Show loading while redirecting
+      setCheckingToken(true);
+      router.replace("/home");
+    } else {
+      setCheckingToken(false);
+    }
+  }, [router]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const res = await adminLoginAction(formData);
+
+    if (res.error) {
+      setError(res.error);
+      setLoading(false);
+    } else if (res.success && res.admin) {
+      localStorage.setItem("admin_token", res.admin.token!);
+      router.push("/home");
+    }
+  }
+
+  if (checkingToken) {
+    // Show loading screen while checking token
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 p-4">
+        <div className="text-white flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin w-10 h-10" />
+          <p>Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3  gap-4 p-4">
-      {/* Main Overview - spans 2 columns on larger screens */}
-      <div className="bg-primary-foreground p-4 rounded-lg sm:col-span-2 2xl:col-span-2">
-       <DailyOrders/>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 p-4">
+      <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-10 transform transition-transform hover:scale-105">
+        <h1 className="text-3xl font-extrabold text-center text-gray-900 dark:text-white mb-8">
+          Admin Portal
+        </h1>
 
-      {/* Single stat cards */}
-      <div className="bg-primary-foreground p-4 rounded-lg">
-       <RevenueLineChart/>
-      </div>
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      <div className="bg-primary-foreground  rounded-lg xl:col-span-1 ">
-       <RevenuePieChart/>
-      </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 font-medium">
+              Email
+            </Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="admin@example.com"
+              required
+              className="mt-2 px-4 py-3 rounded-xl border border-gray-300 focus:border-green-500 focus:ring focus:ring-green-200 transition"
+            />
+          </div>
 
-      {/* Recent Activity - spans 2 columns on 2XL */}
-      <div className="bg-primary-foreground p-4 rounded-lg xl:col-span-2 ">
-       <AreaChartt/>
-      </div>
-     
+          <div>
+            <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium">
+              Password
+            </Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="********"
+              required
+              className="mt-2 px-4 py-3 rounded-xl border border-gray-300 focus:border-green-500 focus:ring focus:ring-green-200 transition"
+            />
+          </div>
 
-      {/* More Info or Placeholder Card */}
-     
-       <div className="bg-primary-foreground p-4 rounded-lg xl:col-span-2 ">
-      <EmployeeCards/>
-      </div>
+          <Button
+            type="submit"
+            className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center justify-center gap-2 transition"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin w-5 h-5" />
+                Logging in...
+              </>
+            ) : (
+              "Login"
+            )}
+          </Button>
+        </form>
 
-
-       <div className="bg-primary-foreground p-4 rounded-lg">
-       <TodoList/>
+        <p className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
+          © {new Date().getFullYear()} Apni Farming Admin
+        </p>
       </div>
     </div>
   );
-};
-
-export default Home;
+}
