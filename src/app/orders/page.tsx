@@ -1,4 +1,26 @@
+// import OrdersPage from '@/components/orders/OrdersPage'
+// import React from 'react'
+
+// const page = () => {
+//   return (
+// <>
+
+// <OrdersPage/>
+// </>  )
+// }
+
+// export default page
+
+
+
+
+
+
+
+
+
 "use client";
+
 
 import React, { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -221,18 +243,22 @@ export default function OrdersComponent() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(100);
 
-  const [filters, setFilters] = useState({
-    search: "",
-    uid: "",
-    phone: "",
-    orderId: "",
-    dateFrom: "",
-    dateTo: "",
-    slot: "",
-    driverId: "",
-    orderStatus: "",
-    paymentStatus: "",
-  });
+const Fromtoday = dayjs().format("YYYY-MM-DD");
+const today = dayjs().format("YYYY-MM-DD");
+
+const [filters, setFilters] = useState({
+  search: "",
+  uid: "",
+  phone: "",
+  orderId: "",
+  dateFrom: Fromtoday,
+  dateTo: today,
+  slot: "",
+  driverId: "",
+  orderStatus: "",
+  paymentStatus: "",
+});
+
 
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
@@ -475,8 +501,8 @@ const handleDownloadPDF = async (filters: any, limit: number) => {
               <h2>To Date :</h2>
               <Input
               type="date"
-              value={filters.dateFrom}
-              onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+              value={filters.dateTo}
+              onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
               className="w-[170px]"
               placeholder="Created To"
             />
@@ -953,3 +979,8 @@ function OrderItems({ orderId }: { orderId: number }) {
     </div>
   );
 }
+
+
+
+
+

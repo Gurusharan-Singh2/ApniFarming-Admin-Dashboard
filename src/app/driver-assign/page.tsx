@@ -62,13 +62,10 @@ const assignDriver = async ({
   driverId: number;
   orderIds: number[];
 }) => {
-  await axios.post(
-    "https://api.apnifarming.com/user/admin/assigndriver.php",
-    {
-      driver_id: driverId,
-      order_ids: orderIds,
-    }
-  );
+  await axios.post("https://api.apnifarming.com/user/admin/assigndriver.php", {
+    driver_id: driverId,
+    order_ids: orderIds,
+  });
 };
 
 export default function DriverAssignPage() {
@@ -79,21 +76,19 @@ export default function DriverAssignPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(100);
 
-  // Default to show unassigned orders
+  // Filters
   const [assignmentFilter, setAssignmentFilter] = useState<string>("unassigned");
   const [driverFilter, setDriverFilter] = useState<string>("all");
-  const [selectedDate, setSelectedDate] = useState<string>("");
-
   const [slotFilter, setSlotFilter] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState<string>(dayjs().format("YYYY-MM-DD")); // exact date
+  const [fromDate, setFromDate] = useState<string>(""); // new
+  const [toDate, setToDate] = useState<string>(""); // new
 
   const { data, isLoading: ordersLoading } = useQuery({
     queryKey: ["orders", page, limit],
     queryFn: fetchOrders,
     staleTime: 0,
   });
-
-  console.log(data);
-  
 
   const { data: drivers = [], isLoading: driversLoading } = useQuery({
     queryKey: ["drivers"],
@@ -127,19 +122,26 @@ export default function DriverAssignPage() {
       if (driverFilter !== "all" && o.driver_id?.toString() !== driverFilter)
         return false;
 
-      // Date filter
+      // Exact Date filter
       if (
         selectedDate &&
         !dayjs(o.delivery_date).isSame(dayjs(selectedDate), "day")
       )
         return false;
 
+      // From-To Date filter
+      if (fromDate && dayjs(o.delivery_date).isBefore(dayjs(fromDate), "day"))
+        return false;
+      if (toDate && dayjs(o.delivery_date).isAfter(dayjs(toDate), "day"))
+        return false;
+
       // Slot filter
-      if (slotFilter !== "all" && o.delivery_from_time !== slotFilter) return false;
+      if (slotFilter !== "all" && o.delivery_from_time !== slotFilter)
+        return false;
 
       return true;
     });
-  }, [orders, assignmentFilter, driverFilter, selectedDate, slotFilter]);
+  }, [orders, assignmentFilter, driverFilter, selectedDate, fromDate, toDate, slotFilter]);
 
   const toggleOrderSelection = useCallback((id: number) => {
     setSelectedOrders((prev) =>
@@ -161,8 +163,7 @@ export default function DriverAssignPage() {
     }
   }, [filteredOrders, selectedOrders]);
 
-  if (ordersLoading || driversLoading || slotsLoading)
-    return <p>Loading...</p>;
+  if (ordersLoading || driversLoading || slotsLoading) return <p>Loading...</p>;
 
   return (
     <Card className="p-4">
@@ -240,19 +241,21 @@ export default function DriverAssignPage() {
           </Select>
 
           {/* Driver filter */}
-          <Select value={driverFilter} onValueChange={setDriverFilter}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by Driver" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Drivers</SelectItem>
-              {drivers.map((driver) => (
-                <SelectItem key={driver.id} value={driver.id.toString()}>
-                  {driver.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {assignmentFilter === "assigned" && (
+            <Select value={driverFilter} onValueChange={setDriverFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filter by Driver" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Drivers</SelectItem>
+                {drivers.map((driver) => (
+                  <SelectItem key={driver.id} value={driver.id.toString()}>
+                    {driver.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {/* Slot filter */}
           <Select value={slotFilter} onValueChange={setSlotFilter}>
@@ -269,14 +272,34 @@ export default function DriverAssignPage() {
             </SelectContent>
           </Select>
 
-          {/* Date Filter */}
-          <div className="flex gap-4">
-            <label className="text-sm text-muted-foreground">Filter by Date</label>
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
+          {/* Date Filters */}
+          <div className="flex gap-4 flex-wrap items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground">Exact Date</label>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground">From</label>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground">To</label>
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
@@ -310,14 +333,17 @@ export default function DriverAssignPage() {
                     <p className="text-sm text-muted-foreground">
                       {dayjs(order.delivery_date).format("DD MMM YYYY")}
                     </p>
-                    <p className="text-sm text-muted-foreground">Order id: {order.id}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Order id: {order.id}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       Slot: {order.delivery_from_time} - {order.delivery_to_time}
                     </p>
                   </div>
                   <div>
-                    <p>Address : {order.shipping_address
-} {order.shipping_city}  </p>
+                    <p>
+                      Address : {order.shipping_address} {order.shipping_city}{" "}
+                    </p>
                   </div>
                   <div>
                     <p className="text-base">
@@ -326,7 +352,9 @@ export default function DriverAssignPage() {
                           {order?.driver_name}
                         </span>
                       ) : (
-                        <span className="text-red-500 text-sm">Not Assigned</span>
+                        <span className="text-red-500 text-sm">
+                          Not Assigned
+                        </span>
                       )}
                     </p>
                   </div>
@@ -353,11 +381,7 @@ export default function DriverAssignPage() {
           <p className="text-sm">
             Page {page} of {totalPages}
           </p>
-          <Button
-            variant="outline"
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
+          <Button variant="outline" onClick={() => setPage((p) => p + 1)}>
             Next
           </Button>
         </div>
