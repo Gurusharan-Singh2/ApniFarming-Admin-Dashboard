@@ -84,7 +84,7 @@ const searchCustomers = async (search: string) => {
 };
 const createCustomer = async (newCustomer: NewCustomer) => {
   const { data } = await axios.post(
-    `${BACKEND}/api/admin/create-customer`,
+    `https://api.apnifarming.com/user/admin/addCustomer.php`,
     newCustomer
   );
   return data;
