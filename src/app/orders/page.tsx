@@ -916,11 +916,17 @@ function PaymentForm({
       {/* Only show input if Paid */}
       {status === "1" && (
         <Input
-          type="number"
-          value={receivedAmount}
-          onChange={(e) => setReceivedAmount(e.target.value)}
-          placeholder="Enter received amount"
-        />
+  type="number"
+  value={receivedAmount}
+  placeholder="Enter received amount"
+  onChange={(e) => {
+    let val = parseFloat(e.target.value) || 0;
+    const maxAmount = parseFloat(pendingAmount.toString()); // or whatever max you want
+    if (val > maxAmount) val = maxAmount;
+    setReceivedAmount(val.toString());
+  }}
+/>
+
       )}
 
       <div className="flex justify-end gap-2 mt-2">
