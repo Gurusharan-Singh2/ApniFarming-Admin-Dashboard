@@ -177,7 +177,7 @@ const Checkout = ({ setCheckout, user, address }) => {
   };
 
   return (
-    <div className="h-full relative p-4 bg-white dark:bg-neutral-900 text-black dark:text-white">
+    <div className="h-full relative p-4 bg-neutral-900  text-white">
       {/* Close Button */}
       <button
         onClick={() => setCheckout(false)}
@@ -221,11 +221,11 @@ const Checkout = ({ setCheckout, user, address }) => {
       <OrderSummary/>
 
       {/* Checkout Button */}
-      <div className="mt-6 px-6">
+      <div className="mt-6 px-6 mb-5">
         <button
           onClick={handleCheckout}
           disabled={!selectedSlotId}
-          className={`px-4 py-2 rounded text-white w-full ${
+          className={`px-4 py-2 rounded text-white w-full mb-6 ${
             selectedSlotId
               ? 'bg-blue-500 dark:bg-blue-600'
               : 'bg-gray-400 dark:bg-gray-700 cursor-not-allowed'

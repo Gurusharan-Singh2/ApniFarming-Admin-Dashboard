@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -26,34 +26,37 @@ import useCartStore from "@/Store/Cart";
 import Checkout from "@/components/Checkout";
 import CartIconWithBadge from "@/components/CartIcon";
 import CategoryItem from "@/components/ItemCategory";
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND;
 
 interface Customer {
   id: string;
   first_name: string;
   phone: string;
 }
+
 interface Address {
   id: string;
   street_address: string;
   landmark: string;
-  address: string;
-  pincode: number;
   city: string;
   state: string;
   address_title: string;
+  zip: number;
+  pincode: number;
 }
+
 interface NewCustomer {
   first_name: string;
   phone: string;
 }
+
 interface AddressPayload {
   street: string;
   landmark: string;
   city: string;
   state: string;
   address_title: string;
-  pincode: number | string;
+  zip: number | string;
+  default_address?: number;
 }
 
 // -------------------- Hook --------------------
@@ -73,15 +76,15 @@ const fetchAllCustomers = async () => {
   );
   return res.data.data;
 };
+
 const searchCustomers = async (search: string) => {
   const res = await axios.post(
     `https://api.apnifarming.com/user/admin/searchuser.php`,
-    {
-      search: search || "",
-    }
+    { search: search || "" }
   );
   return res.data.data;
 };
+
 const createCustomer = async (newCustomer: NewCustomer) => {
   const { data } = await axios.post(
     `https://api.apnifarming.com/user/admin/addCustomer.php`,
@@ -89,6 +92,7 @@ const createCustomer = async (newCustomer: NewCustomer) => {
   );
   return data;
 };
+
 const fetchAddresses = async (uid: string) => {
   if (!uid) return [];
   const { data } = await axios.post(
@@ -97,6 +101,7 @@ const fetchAddresses = async (uid: string) => {
   );
   return data?.data || [];
 };
+
 const createAddress = async ({
   uid,
   ...payload
@@ -107,6 +112,7 @@ const createAddress = async ({
   );
   return data;
 };
+
 const updateAddress = async ({
   uid,
   id,
@@ -118,6 +124,7 @@ const updateAddress = async ({
   );
   return data;
 };
+
 const deleteAddress = async ({ uid, id }: { uid: string; id: string }) => {
   const { data } = await axios.post(
     `https://api.apnifarming.com/user/address/address.php`,
@@ -126,7 +133,7 @@ const deleteAddress = async ({ uid, id }: { uid: string; id: string }) => {
   return data;
 };
 
-// -------------------- Component --------------------
+// -------------------- Page Component --------------------
 const Page = () => {
   const queryClient = useQueryClient();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
@@ -136,6 +143,7 @@ const Page = () => {
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 400);
+
   const [addressSelectOpen, setAddressSelectOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [checkout, setCheckout] = useState(false);
@@ -149,17 +157,17 @@ const Page = () => {
   const [addressForm, setAddressForm] = useState<AddressPayload>({
     street: "",
     landmark: "",
-    city: "",
-    state: "",
-    address_title: "",
-    pincode: "",
+    city: "Lakhimpur Kheiri",
+    state: "Uttar Pradesh",
+    address_title: "Home",
+    zip: "262701",
+    default_address: 1,
   });
-
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
 
-  // Customers (All / Search)
+  // -------------------- Customers --------------------
   const { data: allCustomers = [], isLoading: isAllCustomersLoading } =
     useQuery<Customer[]>({
       queryKey: ["customers-all"],
@@ -167,18 +175,18 @@ const Page = () => {
       enabled: !debouncedSearch,
     });
 
-  const {
-    data: searchedCustomers = [],
-    isLoading: isSearchedCustomersLoading,
-  } = useQuery<Customer[]>({
-    queryKey: ["customers-search", debouncedSearch],
-    queryFn: () => searchCustomers(debouncedSearch),
-    enabled: !!debouncedSearch,
-  });
+  const { data: searchedCustomers = [], isLoading: isSearchedCustomersLoading } =
+    useQuery<Customer[]>({
+      queryKey: ["customers-search", debouncedSearch],
+      queryFn: () => searchCustomers(debouncedSearch),
+      enabled: !!debouncedSearch,
+    });
 
-  const customerList = debouncedSearch ? searchedCustomers : allCustomers;
+  const customerList = useMemo(
+    () => (debouncedSearch ? searchedCustomers : allCustomers),
+    [debouncedSearch, searchedCustomers, allCustomers]
+  );
 
-  // Create Customer
   const { mutate: addCustomer, isPending: creatingCustomer } = useMutation({
     mutationFn: createCustomer,
     onSuccess: (created: Customer) => {
@@ -198,7 +206,15 @@ const Page = () => {
       toast.error(err?.response?.data?.message || "Failed to create customer"),
   });
 
-  // Addresses
+  const handleCreateCustomer = () => {
+    if (!newCustomer.first_name.trim() || !newCustomer.phone.trim()) {
+      toast.error("First name & phone required");
+      return;
+    }
+    addCustomer(newCustomer);
+  };
+
+  // -------------------- Addresses --------------------
   const { data: addresses = [], isLoading: isAddressesLoading } =
     useQuery<Address[]>({
       queryKey: ["addresses", selectedCustomerId],
@@ -208,12 +224,14 @@ const Page = () => {
 
   const { mutate: addAddress, isPending: creatingAddress } = useMutation({
     mutationFn: createAddress,
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({
-        queryKey: ["addresses", selectedCustomerId],
-      });
-      const newAddr = res?.data;
-      if (newAddr) setSelectedAddress(newAddr);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["addresses", selectedCustomerId] });
+      setTimeout(() => {
+        const updatedAddresses = queryClient.getQueryData<Address[]>(["addresses", selectedCustomerId]);
+        if (updatedAddresses && updatedAddresses.length > 0) {
+          setSelectedAddress(updatedAddresses[updatedAddresses.length - 1]);
+        }
+      }, 100);
       resetAddressForm();
       setIsAddressDialogOpen(false);
       setAddressSelectOpen(true);
@@ -226,9 +244,7 @@ const Page = () => {
   const { mutate: editAddress, isPending: updatingAddress } = useMutation({
     mutationFn: updateAddress,
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["addresses", selectedCustomerId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["addresses", selectedCustomerId] });
       resetAddressForm();
       setEditingAddressId(null);
       toast.success("Address updated!");
@@ -240,38 +256,28 @@ const Page = () => {
   const { mutate: removeAddress } = useMutation({
     mutationFn: deleteAddress,
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["addresses", selectedCustomerId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["addresses", selectedCustomerId] });
       toast.success("Address deleted!");
     },
     onError: (err: any) =>
       toast.error(err?.response?.data?.message || "Failed to delete address"),
   });
 
-  const handleCreateCustomer = () => {
-    if (!newCustomer.first_name.trim() || !newCustomer.phone.trim()) {
-      toast.error("First name & phone required");
-      return;
-    }
-    addCustomer(newCustomer);
-  };
-
   const handleAddressSave = () => {
-    const { street, city, state, address_title, pincode } = addressForm;
-    if (!street || !city || !state || !address_title || !pincode) {
-      toast.error("Please fill all required fields");
-      return;
+    const { street, city, state, address_title, zip } = addressForm;
+    if (!street || !city || !state || !address_title || !zip) {
+      return toast.error("Please fill all required fields");
     }
-    if (editingAddressId) {
-      editAddress({
-        uid: selectedCustomerId,
-        id: editingAddressId,
-        ...addressForm,
-      });
-    } else {
-      addAddress({ uid: selectedCustomerId, ...addressForm });
+
+    const numericzip = Number(zip);
+    if (isNaN(numericzip)) {
+      return toast.error("Please enter a valid zip");
     }
+
+    const payload = { uid: selectedCustomerId, ...addressForm, zip: numericzip };
+
+    if (editingAddressId) editAddress({ ...payload, id: editingAddressId });
+    else addAddress(payload);
   };
 
   const handleEditClick = (addr: Address) => {
@@ -281,49 +287,28 @@ const Page = () => {
       city: addr.city || "",
       state: addr.state || "",
       address_title: addr.address_title || "",
-      pincode: addr.pincode,
+      zip: addr.zip?.toString() || "",
     });
     setEditingAddressId(addr.id);
     setIsAddressDialogOpen(true);
   };
 
-  const resetAddressForm = () => {
+  const resetAddressForm = useCallback(() => {
     setAddressForm({
       street: "",
       landmark: "",
-      city: "",
-      state: "",
-      address_title: "",
-      pincode: "",
+      city: "Lakhimpur Kheiri",
+      state: "Uttar Pradesh",
+      address_title: "Home",
+      zip: "262701",
+      default_address: 1,
     });
     setEditingAddressId(null);
-  };
+  }, []);
 
   useEffect(() => {
-    if (debouncedSearch) {
-      setCustomerSelectOpen(true);
-    } else {
-      setCustomerSelectOpen(false);
-    }
+    setCustomerSelectOpen(!!debouncedSearch);
   }, [debouncedSearch]);
-
-  const { finalAmount, cart } = useCartStore();
-
-  const handleCheckoutClick = () => {
-    if (!selectedCustomer) {
-      toast.error("Please select a customer");
-      return;
-    }
-    if (!selectedAddress) {
-      toast.error("Please select an address");
-      return;
-    }
-    if (cart.length === 0) {
-      toast.error("Your cart is empty");
-      return;
-    }
-    setCheckout(true);
-  };
 
   useEffect(() => {
     if (selectedCustomerId && !isAddressesLoading && addresses.length === 0) {
@@ -331,8 +316,15 @@ const Page = () => {
     }
   }, [selectedCustomerId, addresses, isAddressesLoading]);
 
+  const { finalAmount, cart } = useCartStore();
 
-  
+  const handleCheckoutClick = () => {
+    if (!selectedCustomer) return toast.error("Please select a customer");
+    if (!selectedAddress) return toast.error("Please select an address");
+    if (cart.length === 0) return toast.error("Your cart is empty");
+    setCheckout(true);
+  };
+
   if (checkout) {
     return (
       <Checkout
@@ -345,9 +337,11 @@ const Page = () => {
 
   return (
     <main className="p-4 md:p-6 max-w-[1600px] min-h-screen mx-auto bg-white dark:bg-black text-black dark:text-white">
-      <h1 className="text-lg md:text-xl font-semibold mb-4 text-black dark:text-white">Create New Order</h1>
+      <h1 className="text-lg md:text-xl font-semibold mb-4 text-black dark:text-white">
+        Create New Order
+      </h1>
 
-      {/* Search + Select Customer */}
+      {/* Customer Search + Select */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 flex-wrap">
         <Input
           placeholder="Search customer by name..."
@@ -363,10 +357,9 @@ const Page = () => {
             const customer = customerList.find((c) => c.id === val) || null;
             setSelectedCustomer(customer);
             setSelectedCustomerId(val);
-            setCustomerSelectOpen(true);
             setAddressSelectOpen(true);
           }}
-          value={selectedCustomerId}
+          value={selectedCustomerId || ""}
           disabled={isAllCustomersLoading || isSearchedCustomersLoading}
         >
           <SelectTrigger className="w-full sm:w-[300px]">
@@ -401,24 +394,18 @@ const Page = () => {
               <div>
                 <Label>First Name</Label>
                 <Input
-                  value={newCustomer.first_name}
+                  value={newCustomer.first_name ?? ""}
                   onChange={(e) =>
-                    setNewCustomer({
-                      ...newCustomer,
-                      first_name: e.target.value,
-                    })
+                    setNewCustomer({ ...newCustomer, first_name: e.target.value })
                   }
                 />
               </div>
               <div>
                 <Label>Phone</Label>
                 <Input
-                  value={newCustomer.phone}
+                  value={newCustomer.phone ?? ""}
                   onChange={(e) =>
-                    setNewCustomer({
-                      ...newCustomer,
-                      phone: e.target.value,
-                    })
+                    setNewCustomer({ ...newCustomer, phone: e.target.value })
                   }
                 />
               </div>
@@ -458,12 +445,12 @@ const Page = () => {
             <SelectContent>
               {addresses.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
-                  {a.pincode} - {a.street_address}, {a.city}
-                </SelectItem>
+                  {a.pincode} -{a.landmark}, {a.street_address}, {a.city}                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
+          {/* Address Dialog */}
           <Dialog
             open={isAddressDialogOpen}
             onOpenChange={(open) => {
@@ -485,84 +472,12 @@ const Page = () => {
 
               {/* Address Form */}
               <div className="space-y-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label>Title</Label>
-                  <Input
-                    value={addressForm.address_title}
-                    onChange={(e) =>
-                      setAddressForm({
-                        ...addressForm,
-                        address_title: e.target.value,
-                      })
-                    }
-                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
-                  />
-                </div>
-                <div>
-                  <Label>Street</Label>
-                  <Input
-                    value={addressForm.street}
-                    onChange={(e) =>
-                      setAddressForm({
-                        ...addressForm,
-                        street: e.target.value,
-                      })
-                    }
-                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
-                  />
-                </div>
-                <div>
-                  <Label>Landmark</Label>
-                  <Input
-                    value={addressForm.landmark}
-                    onChange={(e) =>
-                      setAddressForm({
-                        ...addressForm,
-                        landmark: e.target.value,
-                      })
-                    }
-                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
-                  />
-                </div>
-                <div>
-                  <Label>City</Label>
-                  <Input
-                    value={addressForm.city}
-                    onChange={(e) =>
-                      setAddressForm({
-                        ...addressForm,
-                        city: e.target.value,
-                      })
-                    }
-                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
-                  />
-                </div>
-                <div>
-                  <Label>State</Label>
-                  <Input
-                    value={addressForm.state}
-                    onChange={(e) =>
-                      setAddressForm({
-                        ...addressForm,
-                        state: e.target.value,
-                      })
-                    }
-                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
-                  />
-                </div>
-                <div>
-                  <Label>Zip</Label>
-                  <Input
-                    value={addressForm.pincode}
-                    onChange={(e) =>
-                      setAddressForm({
-                        ...addressForm,
-                        pincode: e.target.value,
-                      })
-                    }
-                    className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
-                  />
-                </div>
+                
+                <InputField label="Street" value={addressForm.street}  disabled={false} setValue={(v) => setAddressForm({ ...addressForm, street: v })} />
+                <InputField label="Landmark" value={addressForm.landmark} setValue={(v) => setAddressForm({ ...addressForm, landmark: v })} disabled={false}/>
+                <InputField label="City" value={addressForm.city} disabled={true} />
+                <InputField label="State" value={addressForm.state} disabled={true} />
+                <InputField label="Zip" value={addressForm.zip} disabled={true} />
               </div>
 
               <Button
@@ -576,37 +491,12 @@ const Page = () => {
               {/* Address List */}
               <div className="space-y-2 pt-4 max-h-[300px] overflow-auto">
                 {addresses.map((addr) => (
-                  <div
+                  <AddressCard
                     key={addr.id}
-                    className="border p-3 rounded flex flex-col sm:flex-row sm:justify-between gap-3 bg-white dark:bg-neutral-900 border-gray-300 dark:border-gray-700"
-                  >
-                    <div>
-                      <p className="font-medium">{addr.address_title}</p>
-                      <p>{addr.street_address}</p>
-                      <p>{addr.landmark}</p>
-                      <p>
-                        {addr.city}, {addr.state} - {addr.pincode}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleEditClick(addr)}
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        onClick={() =>
-                          removeAddress({ uid: selectedCustomerId, id: addr.id })
-                        }
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </div>
+                    addr={addr}
+                    onEdit={handleEditClick}
+                    onDelete={() => removeAddress({ uid: selectedCustomerId, id: addr.id })}
+                  />
                 ))}
               </div>
             </DialogContent>
@@ -630,5 +520,51 @@ const Page = () => {
     </main>
   );
 };
+
+// -------------------- Helper Components --------------------
+const InputField = React.memo(({ label, value,disabled, setValue }: { label: string, value: any, disabled:boolean, setValue?: (v: any) => void }) => (
+  <div>
+    <Label>{label}</Label>
+    <Input
+      value={value ?? ""} // never undefined
+      onChange={(e) => setValue?.(e.target.value)}
+      disabled={disabled}
+      className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
+    />
+  </div>
+));
+
+const AddressCard = React.memo(
+  ({
+    addr,
+    onEdit,
+    onDelete,
+  }: {
+    addr: Address;
+    onEdit: (addr: Address) => void;
+    onDelete: () => void;
+  }) => {
+    return (
+      <div className="border p-3 rounded flex flex-col sm:flex-row sm:justify-between gap-3 bg-white dark:bg-neutral-900 border-gray-300 dark:border-gray-700">
+        <div>
+          <p className="font-medium">{addr.address_title}</p>
+          <p>{addr.street_address}</p>
+          <p>{addr.landmark}</p>
+          <p>
+            {addr.city}, {addr.state} - {addr.pincode}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="icon" variant="outline" onClick={() => onEdit(addr)}>
+            <Edit size={16} />
+          </Button>
+          <Button size="icon" variant="destructive" onClick={onDelete}>
+            <Trash2 size={16} />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+);
 
 export default Page;

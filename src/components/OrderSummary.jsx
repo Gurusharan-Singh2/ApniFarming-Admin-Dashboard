@@ -12,9 +12,9 @@ export default function OrderSummary() {
     couponDiscount,
   } = useCartStore();
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+    <div className="bg-gray rounded-lg shadow-sm p-4 mb-4">
       {/* Heading */}
-      <h3 className="text-lg font-bold text-black mb-4">Order Summary</h3>
+      <h3 className="text-lg font-bold text-white mb-4">Order Summary</h3>
 
      
 

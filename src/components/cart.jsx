@@ -14,8 +14,8 @@ export default function CartPage() {
   const router = useRouter();
 
   const renderItem = (item, index) => (
-    <div key={`${item.id}-${item.selectedSize?.size}-${index}`} className="flex gap-3 mt-3 bg-white p-2 border-b border-gray-100 shadow relative">
-      <div className="absolute right-2 top-2">
+    <div key={`${item.id}-${item.selectedSize?.size}-${index}`} className="flex gap-3 mt-3 bg-gray-800 p-2 border-b  shadow relative">
+      <div className="absolute right-2 top-2 text-white">
         <p className="text-xs font-bold">
           {item?.quantity} X ₹ {item?.selectedSize?.sellPrice} = ₹
           {item?.quantity * item?.selectedSize?.sellPrice || 0}
@@ -28,8 +28,8 @@ export default function CartPage() {
 
       <div className="flex flex-col justify-between flex-1">
         <div>
-          <p className="text-gray-600 font-semibold">{item.name}</p>
-          <p className="text-gray-400 font-semibold text-sm">
+          <p className="text-white font-semibold">{item.name}</p>
+          <p className="text-white font-semibold text-sm">
             {item.selectedSize?.size} {item.selectedSize?.option}
           </p>
         </div>
@@ -50,7 +50,7 @@ export default function CartPage() {
               onClick={() => removeFromCart(item?.id, item?.selectedSize?.id)}
               className="text-red-600"
             >
-              🗑
+              🗑 Remove from cart
             </button>
           </div>
 
@@ -84,8 +84,8 @@ export default function CartPage() {
   );
 
   return (
-    <div className=" bg-gray-50">
-      <div className="px-4 py-2 flex justify-between items-center  text-black">
+    <div className=" bg-neutral-900">
+      <div className="px-4 py-2 flex justify-between items-center  text-white">
         <h1 className="text-lg font-bold">Cart</h1>
       </div>
 
