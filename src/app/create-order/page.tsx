@@ -534,7 +534,7 @@ const InputFieldComponent = ({ label, value, disabled, setValue }: { label: stri
 );
 
 InputFieldComponent.displayName = "InputField";
-export const InputField = React.memo(InputFieldComponent);
+ const InputField = React.memo(InputFieldComponent);
 
 
 const AddressCardComponent = ({
@@ -569,7 +569,7 @@ const AddressCardComponent = ({
 };
 
 AddressCardComponent.displayName = "AddressCard";
-export const AddressCard = React.memo(AddressCardComponent);
+ const AddressCard = React.memo(AddressCardComponent);
 
 
 export default Page;
