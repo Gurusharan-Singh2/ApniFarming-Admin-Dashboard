@@ -43,7 +43,7 @@ export async function adminLoginAction(formData: FormData): Promise<LoginRespons
     httpOnly: true,
     secure: process.env.NODE_ENV === "production", // false in dev
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 15, // 7 days
   });
 
 
