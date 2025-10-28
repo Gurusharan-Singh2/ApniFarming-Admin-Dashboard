@@ -4,7 +4,6 @@
 import React, { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useOrdersData } from "./hooks/useOrder";
 import { useOrderMutations } from "./hooks/useOrderMutation";
 import { FiltersBar } from "./components/FiltersBar";

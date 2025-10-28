@@ -127,7 +127,7 @@ const useCartStore = create(
       },
 
       applyCouponFromBackend: (couponData) => {
-        const { code, discount, final_total, message } = couponData;
+        const { code, discount, message } = couponData;
         set((state) => {
           state.couponCode = code;
           state.couponDiscount = discount;

@@ -33,7 +33,7 @@ export default function AddCategoryPage() {
     register,
     handleSubmit,
     reset,
-    formState: { isSubmitting },
+   
   } = useForm<FormInput>()
 
   const mutation = useMutation({

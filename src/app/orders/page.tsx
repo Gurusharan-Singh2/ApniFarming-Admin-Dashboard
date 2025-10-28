@@ -22,7 +22,7 @@
 "use client";
 
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,10 +47,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
 import dayjs from "dayjs";
 import { Loader } from "@/components/Loader";
-import { Label } from "recharts";
 
 // Types
 type Order = {
@@ -269,7 +267,7 @@ const [filters, setFilters] = useState({
   });
 
   // Fetch orders
-  const { data, isLoading, isFetching, isError } = useQuery({
+  const { data,  isFetching, isError } = useQuery({
     queryKey: ["orders", page, limit, filters],
     queryFn: fetchOrders,
     placeholderData: { orders: [], totalPages: 1 },
@@ -442,13 +440,15 @@ const handleDownloadPDF = async (filters: any, limit: number) => {
 
 
 
-  const debouncedSetSearch = useCallback(
-  debounce((value: string) => {
-    setFilters((f) => ({ ...f, search: value }));
-    setPage(1); // Reset to first page on new search
-  }, 500),
+const debouncedSetSearch = useMemo(
+  () =>
+    debounce((value: string) => {
+      setFilters((f) => ({ ...f, search: value }));
+      setPage(1);
+    }, 500),
   []
 );
+
 
   if (isPdfLoading)
     return (

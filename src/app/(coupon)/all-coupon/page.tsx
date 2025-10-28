@@ -10,7 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card,  CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'react-toastify'
 import { Loader } from '@/components/Loader'
 

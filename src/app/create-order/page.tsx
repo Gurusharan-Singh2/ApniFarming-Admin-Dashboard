@@ -521,50 +521,55 @@ const Page = () => {
   );
 };
 
-// -------------------- Helper Components --------------------
-const InputField = React.memo(({ label, value,disabled, setValue }: { label: string, value: any, disabled:boolean, setValue?: (v: any) => void }) => (
+const InputFieldComponent = ({ label, value, disabled, setValue }: { label: string; value: any; disabled: boolean; setValue?: (v: any) => void }) => (
   <div>
     <Label>{label}</Label>
     <Input
-      value={value ?? ""} // never undefined
+      value={value ?? ""}
       onChange={(e) => setValue?.(e.target.value)}
       disabled={disabled}
       className="bg-white dark:bg-neutral-900 text-black dark:text-white border border-gray-300 dark:border-gray-700"
     />
   </div>
-));
-
-const AddressCard = React.memo(
-  ({
-    addr,
-    onEdit,
-    onDelete,
-  }: {
-    addr: Address;
-    onEdit: (addr: Address) => void;
-    onDelete: () => void;
-  }) => {
-    return (
-      <div className="border p-3 rounded flex flex-col sm:flex-row sm:justify-between gap-3 bg-white dark:bg-neutral-900 border-gray-300 dark:border-gray-700">
-        <div>
-          <p className="font-medium">{addr.address_title}</p>
-          <p>{addr.street_address}</p>
-          <p>{addr.landmark}</p>
-          <p>
-            {addr.city}, {addr.state} - {addr.pincode}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button size="icon" variant="outline" onClick={() => onEdit(addr)}>
-            <Edit size={16} />
-          </Button>
-          <Button size="icon" variant="destructive" onClick={onDelete}>
-            <Trash2 size={16} />
-          </Button>
-        </div>
-      </div>
-    );
-  }
 );
+
+InputFieldComponent.displayName = "InputField";
+export const InputField = React.memo(InputFieldComponent);
+
+
+const AddressCardComponent = ({
+  addr,
+  onEdit,
+  onDelete,
+}: {
+  addr: Address;
+  onEdit: (addr: Address) => void;
+  onDelete: () => void;
+}) => {
+  return (
+    <div className="border p-3 rounded flex flex-col sm:flex-row sm:justify-between gap-3 bg-white dark:bg-neutral-900 border-gray-300 dark:border-gray-700">
+      <div>
+        <p className="font-medium">{addr.address_title}</p>
+        <p>{addr.street_address}</p>
+        <p>{addr.landmark}</p>
+        <p>
+          {addr.city}, {addr.state} - {addr.pincode}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Button size="icon" variant="outline" onClick={() => onEdit(addr)}>
+          <Edit size={16} />
+        </Button>
+        <Button size="icon" variant="destructive" onClick={onDelete}>
+          <Trash2 size={16} />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+AddressCardComponent.displayName = "AddressCard";
+export const AddressCard = React.memo(AddressCardComponent);
+
 
 export default Page;

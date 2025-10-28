@@ -13,7 +13,6 @@ import {
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'react-toastify'
 import Image from 'next/image'
 import { Loader } from '@/components/Loader'
@@ -54,7 +53,6 @@ export default function AllCategoriesPage() {
   const {
     register,
     handleSubmit,
-    reset,
     setValue,
     formState: { isSubmitting }
   } = useForm<EditFormInput>()

@@ -109,7 +109,7 @@ export default function DriverAssignPage() {
     },
   });
 
-  const orders = data?.orders ?? [];
+const orders = useMemo(() => data?.orders ?? [], [data]);
   const totalPages = data?.totalPages ?? 1;
 
   const filteredOrders = useMemo(() => {

@@ -5,8 +5,7 @@ import { RevenueLineChart } from '@/components/charts/RevenueLineChart';
 import {  RevenuePieChart } from '@/components/charts/RevenuePieChart';
 import { EmployeeCards } from '@/components/EployeeInfo';
 import TodoList from '@/components/TodoList';
-import { useRouter } from 'next/navigation';
-import React, { useEffect } from 'react';
+import React from 'react';
 
 const Home = () => {
 
