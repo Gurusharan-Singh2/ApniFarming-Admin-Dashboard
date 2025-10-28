@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { adminLoginAction } from "@/actions/admin/adminLogin";
 import { Input } from "@/components/ui/input";
@@ -12,47 +12,30 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 export default function AdminLoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [checkingToken, setCheckingToken] = useState<boolean>(true);
-  const [showPassword, setShowPassword] = useState<boolean>(false); // <-- new state
-
-  // Check token on mount
-  useEffect(() => {
-    const token = localStorage.getItem("admin_token");
-    if (token) {
-      setCheckingToken(true);
-      router.replace("/home");
-    } else {
-      setCheckingToken(false);
-    }
-  }, [router]);
+  const [loading, startTransition] = useState(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    startTransition(true);
 
     const formData = new FormData(e.currentTarget);
-    const res = await adminLoginAction(formData);
 
-    if (res.error) {
-      setError(res.error);
-      setLoading(false);
-    } else if (res.success && res.admin) {
-      localStorage.setItem("admin_token", res.admin.token!);
-      router.push("/home");
+    try {
+      const res = await adminLoginAction(formData);
+
+      if (res.error) {
+        setError(res.error);
+      } else if (res.success && res.admin) {
+        router.push("/home");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      startTransition(false);
     }
-  }
-
-  if (checkingToken) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 p-4">
-        <div className="text-white flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin w-10 h-10" />
-          <p>Checking authentication...</p>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -71,10 +54,7 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label
-              htmlFor="email"
-              className="text-gray-700 dark:text-gray-300 font-medium"
-            >
+            <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 font-medium">
               Email
             </Label>
             <Input
@@ -88,16 +68,13 @@ export default function AdminLoginPage() {
           </div>
 
           <div className="relative">
-            <Label
-              htmlFor="password"
-              className="text-gray-700 dark:text-gray-300 font-medium"
-            >
+            <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium">
               Password
             </Label>
             <Input
               id="password"
               name="password"
-              type={showPassword ? "text" : "password"} // toggle type
+              type={showPassword ? "text" : "password"}
               placeholder="********"
               required
               className="mt-2 px-4 py-3 rounded-xl border border-gray-300 focus:border-green-500 focus:ring focus:ring-green-200 transition pr-12"

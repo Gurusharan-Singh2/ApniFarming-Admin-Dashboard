@@ -28,7 +28,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Apni Farming Dashboard",
   icons: {
-    icon: '/logo.png', // or .ico, .svg
+    icon: '/logo.png',
   },
   description: "Admin dashboard for managing farming operations",
 };

@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import jwt from "jsonwebtoken";
+import { cookies } from "next/headers"; // Next.js server action cookies
 
 interface LoginResponse {
   success?: boolean;
@@ -12,7 +13,6 @@ interface LoginResponse {
     last_name: string;
     email: string;
     role?: string | null;
-    token?: string; // Add token here
   };
 }
 
@@ -36,6 +36,17 @@ export async function adminLoginAction(formData: FormData): Promise<LoginRespons
       { expiresIn: "7d" }
     );
 
+     const cookieStore = await cookies();
+  cookieStore.set({
+    name: "admin_token",
+    value: token,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // false in dev
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  });
+
+
     return {
       success: true,
       admin: {
@@ -44,7 +55,6 @@ export async function adminLoginAction(formData: FormData): Promise<LoginRespons
         last_name: admin.last_name,
         email: admin.email,
         role: admin.role,
-        token, // Return token
       },
     };
   } catch (err) {

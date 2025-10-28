@@ -10,11 +10,7 @@ import React, { useEffect } from 'react';
 
 const Home = () => {
 
-  const router = useRouter();
-  useEffect(() => {
-  const token = localStorage.getItem('admin_token');
-  if (!token) router.push('/');
-}, [router]);
+ 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3  gap-4 p-4">
       {/* Main Overview - spans 2 columns on larger screens */}
