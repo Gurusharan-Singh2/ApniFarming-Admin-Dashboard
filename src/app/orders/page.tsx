@@ -48,6 +48,8 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import dayjs from "dayjs";
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
 import { Loader } from "@/components/Loader";
 
 // Types
@@ -346,6 +348,8 @@ const handleDownloadPDF = async (filters: any, limit: number) => {
       return;
     }
 
+    
+
     // Fetch all order items in parallel
     const itemsResponses = await Promise.all(
       orders.map((order: any) =>
@@ -448,7 +452,7 @@ const debouncedSetSearch = useMemo(
     }, 500),
   []
 );
-// hii
+
 
 
   if (isPdfLoading)
@@ -779,6 +783,11 @@ const OrderRow = React.memo(function OrderRow({
             <p className="text-sm">
               <strong>Pending:</strong> ₹{pending}
             </p>
+           
+<p className="text-sm">
+  <strong>Delivery Time:</strong>{' '}
+  {`${dayjs(order.deliveryFromTime, ['HH:mm:ss', 'hh:mm A']).format('hh:mm A')} - ${dayjs(order.deliveryToTime, ['HH:mm:ss', 'hh:mm A']).format('hh:mm A')}`}
+</p>
           </div>
         </div>
 
