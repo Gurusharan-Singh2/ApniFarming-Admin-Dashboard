@@ -20,12 +20,16 @@ import { Loader } from "@/components/Loader"
 import { toast } from "react-toastify"
 import { deleteProductAction } from "@/actions/products/delete-product"
 import { editProductWithImageAction } from "@/actions/products/edit-product"
+import { getAllProductsAction } from "@/actions/products/get-all-products"
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
 const fetchProducts = async () => {
-  const res = await axios.get(`https://api.apnifarming.com/user/products/getAllProducts.php`)
-  return res.data
+  const res = await getAllProductsAction();
+
+  
+ 
+ return res;
 }
 
 const deleteProduct = async (id: string) => {

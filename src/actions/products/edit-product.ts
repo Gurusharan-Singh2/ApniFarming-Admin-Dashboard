@@ -3,7 +3,6 @@
 import prisma from "@/lib/prisma";
 import { uploadToS3, deleteFromS3, getFileNameFromUrl, checkIfExistsInS3 } from "@/utils/s3";
 import { createHash } from "crypto";
-import { revalidateTag } from "next/cache";
 
 interface ProductInput {
   id: number;
@@ -101,7 +100,6 @@ export async function editProductWithImageAction(data: ProductInput) {
     },
   });
 
-  revalidateTag("products");
 
   return { success: true, product: updated, imageUrl };
 }

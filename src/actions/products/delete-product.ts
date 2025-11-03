@@ -2,7 +2,6 @@
 
 import prisma from "@/lib/prisma";
 import { deleteFromS3, getFileNameFromUrl } from "@/utils/s3";
-import { revalidateTag } from "next/cache";
 
 export async function deleteProductAction(productId: number) {
   if (!productId) throw new Error("Product ID is required");
@@ -18,7 +17,7 @@ export async function deleteProductAction(productId: number) {
   await prisma.product_variants.deleteMany({ where: { product_id: productId } });
   await prisma.products.delete({ where: { id: productId } });
 
-  revalidateTag("products");
+ 
 
   return { success: true, message: "Product deleted successfully" };
 }
