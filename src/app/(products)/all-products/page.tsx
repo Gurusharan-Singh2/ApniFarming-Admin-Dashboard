@@ -18,6 +18,8 @@ import { useState } from "react"
 import Image from "next/image"
 import { Loader } from "@/components/Loader"
 import { toast } from "react-toastify"
+import { deleteProductAction } from "@/actions/products/delete-product"
+import { editProductWithImageAction } from "@/actions/products/edit-product"
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
@@ -27,12 +29,11 @@ const fetchProducts = async () => {
 }
 
 const deleteProduct = async (id: string) => {
-  await axios.delete(`${BACKEND}/api/admin/products/${id}`)
+  await deleteProductAction(parseInt(id))
 }
 
 const updateProduct = async (updatedProduct: any) => {
-  const res = await axios.put(`${BACKEND}/api/admin/products/${updatedProduct.id}`, updatedProduct)
-  return res.data
+const res=await editProductWithImageAction(updatedProduct);
 }
 
 export default function AllProductsPage() {
@@ -50,13 +51,13 @@ export default function AllProductsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteProduct,
-    onSuccess: () =>{ queryClient.invalidateQueries({ queryKey: ["products"] })
+    onSuccess: () =>{ queryClient.invalidateQueries({queryKey:['products']})
   toast.success("Product deleted successfully !!!")},
   })
 
   const updateMutation = useMutation({
     mutationFn: updateProduct,
-   onSuccess: () =>{ queryClient.invalidateQueries({ queryKey: ["products"] })
+   onSuccess: () =>{  queryClient.invalidateQueries({queryKey:['products']}); 
   toast.success("Product Updated successfully !!!")},
     onError: (error) => console.error(error),
   })
@@ -89,7 +90,11 @@ export default function AllProductsPage() {
       data.image = await toBase64(imageFile)
     }
     data.id = selectedProduct?.id
-    data.categoryId = selectedProduct?.categoryId
+   
+    
+    data.categoryId = selectedProduct?.category_id
+
+    
     updateMutation.mutate(data)
     setSelectedProduct(null)
     reset()
@@ -164,6 +169,9 @@ export default function AllProductsPage() {
                               <Badge variant="secondary">
                                 ₹{size.sellPrice} <span className="text-xs text-muted-foreground ml-1">(Cost ₹{size.costPrice})</span>
                               </Badge>
+                              <p  className="text-xs text-muted-foreground  ml-1">
+                                Max <span className="text-xs text-muted-foreground ml-1">{size.maxOrder ?? "null"}</span>
+                             </p>
                             </div>
                           ))
                         ) : (
@@ -201,7 +209,7 @@ export default function AllProductsPage() {
                                   option: s.option?.toLowerCase() || "",
                                   costPrice: s.costPrice ?? 0,
                                   sellPrice: s.sellPrice ?? 0,
-                                  maxOrder: s.maxOrder || null,
+                                  maxOrder: s.maxOrder ?? null,
                                 })),
                                 categoryId: product.categoryId,
                               })
@@ -314,7 +322,7 @@ export default function AllProductsPage() {
                                         id={`sizes.${index}.maxOrder`}
                                         placeholder="Max Order"
                                         type="number"
-                                        {...register(`sizes.${index}.maxOrder`)}
+                                        {...register(`sizes.${index}.maxOrder`,{ valueAsNumber: true })}
                                       />
                                     </div>
                                   </div>

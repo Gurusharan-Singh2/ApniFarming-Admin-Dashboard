@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
         hostname: "jobdsco.s3.ap-south-1.amazonaws.com",
       },
     ],
+    unoptimized: true,
   },
 };
 

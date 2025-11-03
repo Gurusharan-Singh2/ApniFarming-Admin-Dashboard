@@ -3,7 +3,7 @@
 import { useState } from "react"
 import axios from "axios"
 import { useForm, useFieldArray } from "react-hook-form"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import Image from "next/image"
 import { toast } from "react-toastify"
 import { Textarea } from "@/components/ui/textarea"
+import { addProductWithImageAction } from "@/actions/products/add-product-with-image"
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
@@ -56,14 +57,17 @@ export default function AddProductPage() {
     control,
     name: "sizes",
   })
+  const queryClient=useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await axios.post(`${BACKEND}/api/admin/products`, data)
-      return res.data
+  
+   mutationFn: async (data:any) => {
+         await addProductWithImageAction(data)
+        
     },
     onSuccess: () => {
-      toast.success("Product uploaded successfully!")
+      toast.success("Product uploaded successfully!");
+      queryClient.invalidateQueries({queryKey:['products']});  
       reset()
       setPreview(null)
       router.replace("/all-products")
