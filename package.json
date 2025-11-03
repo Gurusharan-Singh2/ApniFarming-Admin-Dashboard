@@ -26,6 +26,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tanstack/react-query": "^5.81.2",
     "@tanstack/react-virtual": "^3.13.12",
+    "autoprefixer": "^10.4.21",
     "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -48,6 +49,7 @@
     "pdfkit": "^0.17.2",
     "pdfkit-table": "^0.1.99",
     "pdfmake": "^0.2.20",
+    "postcss": "^8.5.6",
     "react": "^19.1.1",
     "react-day-picker": "^9.7.0",
     "react-dom": "^19.1.1",
@@ -72,7 +74,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "prisma": "^6.18.0",
-    "tailwindcss": "^4",
+    "tailwindcss": "^4.0.0",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5"
   }
