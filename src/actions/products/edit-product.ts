@@ -38,7 +38,7 @@ export async function editProductWithImageAction(data: ProductInput) {
     in_Stock,
     Sort_order,
   } = data;
-  console.log("Data for update",data);
+  
   
 
   if (!id) throw new Error("Product ID is required");

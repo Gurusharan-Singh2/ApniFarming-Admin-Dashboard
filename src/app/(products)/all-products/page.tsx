@@ -47,18 +47,22 @@ export default function AllProductsPage() {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: fetchProducts,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime:0,
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteProduct,
-    onSuccess: () =>{ queryClient.invalidateQueries({queryKey:["products"]})
+    onSuccess: async() =>{await queryClient.invalidateQueries({queryKey:["products"]})
+await queryClient.refetchQueries({ queryKey: ["products"] })
+
   toast.success("Product deleted successfully !!!")},
   })
 
   const updateMutation = useMutation({
     mutationFn: updateProduct,
-   onSuccess: () =>{  queryClient.invalidateQueries({queryKey:["products"]}); 
+   onSuccess: async() =>{ await queryClient.invalidateQueries({ queryKey: ["products"] })
+await queryClient.refetchQueries({ queryKey: ["products"] })
+
   toast.success("Product Updated successfully !!!")},
     onError: (error) => console.error(error),
   })
@@ -96,7 +100,7 @@ export default function AllProductsPage() {
     data.categoryId = selectedProduct?.category_id
 
     
-    updateMutation.mutate(data)
+    await updateMutation.mutateAsync(data)
     setSelectedProduct(null)
     reset()
     setImageFile(null)
