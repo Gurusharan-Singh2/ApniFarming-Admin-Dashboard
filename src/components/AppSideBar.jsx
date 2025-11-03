@@ -5,7 +5,6 @@ import React from 'react'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from './ui/sidebar'
 import Link from 'next/link'
 import Image from 'next/image'
-import logo from '../../public/logo.png'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible'
 import { useSidebar } from './ui/sidebar'
@@ -35,7 +34,7 @@ const AppSideBar = () => {
         <SidebarMenuItem>
           <SidebarMenuButton asChild>
             <Link href='/' className='text-2xl' onClick={handleLinkClick}>
-              <Image src={logo} width={20} height={20} alt=''/>
+              <Image src="/logo.png" width={20} height={20} alt=''/>
               <span>Apni Farming</span>
             </Link>
           </SidebarMenuButton>
