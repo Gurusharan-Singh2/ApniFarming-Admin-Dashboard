@@ -47,17 +47,18 @@ export default function AllProductsPage() {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: fetchProducts,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteProduct,
-    onSuccess: () =>{ queryClient.invalidateQueries({queryKey:['products']})
+    onSuccess: () =>{ queryClient.invalidateQueries({queryKey:["products"]})
   toast.success("Product deleted successfully !!!")},
   })
 
   const updateMutation = useMutation({
     mutationFn: updateProduct,
-   onSuccess: () =>{  queryClient.invalidateQueries({queryKey:['products']}); 
+   onSuccess: () =>{  queryClient.invalidateQueries({queryKey:["products"]}); 
   toast.success("Product Updated successfully !!!")},
     onError: (error) => console.error(error),
   })
