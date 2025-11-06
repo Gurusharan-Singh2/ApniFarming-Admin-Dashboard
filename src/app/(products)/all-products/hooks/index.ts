@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { deleteProductAction, editProductWithImageAction, getAllProductsAction, getProductsByCategoryAction } from "../action"
 import { toast } from "react-toastify"
-import axios from "axios";
+
 
 const fetchProducts = async (categoryId: number) => {
   try {

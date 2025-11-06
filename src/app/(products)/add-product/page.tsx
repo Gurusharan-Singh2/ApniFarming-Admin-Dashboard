@@ -1,9 +1,6 @@
 "use client"
-
 import { useState } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
-import {  useQueryClient } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -16,13 +13,13 @@ import { useAddProduct, useAllcategories } from "./hooks"
 
 export default function AddProductPage() {
   const [preview, setPreview] = useState<string | null>(null)
-  const router = useRouter()
+ 
 
   const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
 
   const { data: categories = [] } = useAllcategories();
 
-  const { register, handleSubmit, setValue, getValues, control, reset } = useForm({
+  const { register, handleSubmit, setValue, getValues, control} = useForm({
     defaultValues: {
       title: "",
       tagline: "",
@@ -48,7 +45,7 @@ export default function AddProductPage() {
     control,
     name: "sizes",
   })
-  const queryClient=useQueryClient();
+
 
   const {mutate,isPending}=useAddProduct()
 

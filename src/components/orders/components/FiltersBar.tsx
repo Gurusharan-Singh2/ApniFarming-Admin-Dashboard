@@ -1,5 +1,5 @@
 // components/orders/components/FiltersBar.tsx
-import React, { useCallback } from "react";
+import React, {  useMemo } from "react";
 import debounce from "lodash.debounce";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,8 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { statusMap } from "../../../utils/statusMap"; // ✅ fixed import name
-import dayjs from "dayjs";
+import { statusMap } from "../../../utils/statusMap"; 
+
 
 type Props = {
   filters: any;
@@ -36,12 +36,13 @@ export const FiltersBar: React.FC<Props> = ({
   limit,
   setLimit,
 }) => {
-  const debouncedSetSearch = useCallback(
+const debouncedSetSearch = useMemo(
+  () =>
     debounce((v: string) => {
       setFilters((f: any) => ({ ...f, search: v }));
     }, 500),
-    [setFilters]
-  );
+  [setFilters]
+);
 
   // Helper to safely handle “All” options
   const handleSelectChange = (key: string, value: string) => {
