@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import Image from "next/image"
 import { Textarea } from "@/components/ui/textarea"
 import { useAddProduct, useAllcategories } from "./hooks"
+import LoadingOverlay from "./componets/ProductLoading"
 
 
 export default function AddProductPage() {
@@ -49,16 +50,37 @@ export default function AddProductPage() {
 
   const {mutate,isPending}=useAddProduct()
 
-  const handleImageUpload = (e: any) => {
-    const file = e.target.files[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setValue("image", reader.result as string)
-      setPreview(reader.result as string)
+  const handleImageUpload = async (e: any) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onloadend = async () => {
+    const base64 = (reader.result as string).split(",")[1];
+
+    // Send base64 image to /api/upload
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        base64Data: base64,
+        fileName: file.name,
+        contentType: file.type,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.url) {
+      setPreview(data.url);
+      setValue("image", data.url); 
+    } else {
+      alert("Image upload failed.");
     }
-    reader.readAsDataURL(file)
-  }
+  };
+  reader.readAsDataURL(file);
+};
+
 
   return (
     <main className="p-6 max-w-3xl mx-auto">
@@ -229,6 +251,8 @@ export default function AddProductPage() {
           </form>
         </CardContent>
       </Card>
+
+       <LoadingOverlay isVisible={isPending} />
     </main>
   )
 }

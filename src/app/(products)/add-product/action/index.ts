@@ -1,6 +1,6 @@
+'use server';
 import prisma from "@/lib/prisma";
-import { checkIfExistsInS3, uploadToS3 } from "@/utils/s3";
-import { createHash } from "crypto";
+
 
 interface ProductInput {
   title: string;
@@ -37,34 +37,16 @@ export async function addProductWithImageAction(data: ProductInput) {
   
   
 
-  if (!title || !Array.isArray(sizes) || sizes.length === 0) {
-    throw new Error("Invalid or missing sizes");
+if (!title || !image || !sizes?.length) {
+    throw new Error("Missing required fields");
   }
-  if (!image.startsWith("data:image/")) {
-    throw new Error("Invalid image format");
-  }
-
-  const matches = image.match(/^data:(image\/\w+);base64,(.+)$/);
-  if (!matches) throw new Error("Invalid base64 format");
-
-  const contentType = matches[1];
-  const buffer = Buffer.from(matches[2], "base64");
-
-  const hash = createHash("sha256").update(buffer).digest("hex");
-  const extension = contentType.split("/")[1];
-  const fileName = `products/${hash}.${extension}`;
-
-  const exists = await checkIfExistsInS3(fileName);
-  const imageUrl = exists
-    ? `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`
-    : await uploadToS3({ fileName, buffer, contentType });
 
   try {
    
     const product = await prisma.products.create({
       data: {
         name: title,
-        image: imageUrl,
+        image,
         tagline,
         category_id: Number(categoryId),
         description,
@@ -89,7 +71,7 @@ export async function addProductWithImageAction(data: ProductInput) {
 
  
 
-    return { success: true, product, imageUrl };
+    return { success: true, product, image };
   } catch (error: any) {
     console.error("❌ Error adding product:", error);
     throw new Error("Failed to create product");
