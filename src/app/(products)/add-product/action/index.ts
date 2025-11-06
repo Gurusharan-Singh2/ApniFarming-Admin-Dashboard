@@ -1,8 +1,6 @@
-"use server";
-
-import { uploadToS3, checkIfExistsInS3 } from "@/utils/s3";
-import { createHash } from "crypto";
 import prisma from "@/lib/prisma";
+import { checkIfExistsInS3, uploadToS3 } from "@/utils/s3";
+import { createHash } from "crypto";
 
 interface ProductInput {
   title: string;

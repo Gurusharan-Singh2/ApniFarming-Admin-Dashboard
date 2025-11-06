@@ -26,6 +26,7 @@ const CategoryItem = ({ setCategoryId, a }) => {
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
+    staleTime: 20 * 60 * 1000, // 5 minutes
   });
 
   return (

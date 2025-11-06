@@ -14,8 +14,7 @@ const items=[
   { title:"Orders", url:"/orders", icon:ListOrderedIcon },
   { title:"Driver-Assign", url:"/driver-assign", icon:UserLock },
   { title:"Calender", url:"#", icon:CalendarSearch },
-  { title:"Search", url:"#", icon:Search },
-  { title:"Setting", url:"#", icon:Settings },
+  
 ]
 
 const AppSideBar = () => {
@@ -69,6 +68,9 @@ const AppSideBar = () => {
         { label: "Categories", links: [{ title: "See All Categories", url: "/all-categories", icon: CastleIcon }, { title: "Add Category", url: "/add-category", icon: Plus }] },
         { label: "Bannners", links: [{ title: "See All Banners", url: "/all-banners", icon: CastleIcon }, { title: "Add Banner", url: "/add-banner", icon: Plus }] },
         { label: "Manage Orders", links: [{ title: "Create new Order", url: "/create-order", icon: Plus }] },
+        {
+         label:"Manage Subscription",links:[{title:"See All Subcription",url:"/subcription",icon:Inbox},{title:"Create Subcription",url:"/create-subcription",icon:Plus}]
+        },
         { label: "Manage Driver", links: [{ title: "See All Driver", url: "/all-driver", icon: UserRound },{ title: "Add Driver", url: "/add-driver", icon: UserRoundPlus }] },
         { label: "Manage Coupon", links: [{ title: "See All Coupon", url: "/all-coupon", icon: Tag },{ title: "Add Coupon", url: "/add-coupon", icon: PlusCircle }] },
       ].map((section, idx) => (

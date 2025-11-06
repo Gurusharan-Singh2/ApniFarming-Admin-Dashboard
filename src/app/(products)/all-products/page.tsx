@@ -1,7 +1,6 @@
 "use client"
 
-import axios from "axios"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card"
@@ -17,59 +16,26 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { useState } from "react"
 import Image from "next/image"
 import { Loader } from "@/components/Loader"
-import { toast } from "react-toastify"
-import { deleteProductAction } from "@/actions/products/delete-product"
-import { editProductWithImageAction } from "@/actions/products/edit-product"
-import { getAllProductsAction } from "@/actions/products/get-all-products"
+import { useAllProduct, useDeleteProduct, useUpdateProduct } from "./hooks"
+import CategoryItem from "@/components/ItemCategory"
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
-const fetchProducts = async () => {
-  const res = await getAllProductsAction();
 
-  
- 
- return res;
-}
-
-const deleteProduct = async (id: string) => {
-  await deleteProductAction(parseInt(id))
-}
-
-const updateProduct = async (updatedProduct: any) => {
-const res=await editProductWithImageAction(updatedProduct);
-}
 
 export default function AllProductsPage() {
-  const queryClient = useQueryClient()
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [categoryId, setCategoryId] = useState(0);
+  
 
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: fetchProducts,
-    staleTime:0,
-  })
+  const { data: products = [], isLoading } =useAllProduct(categoryId);
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteProduct,
-    onSuccess: async() =>{await queryClient.invalidateQueries({queryKey:["products"]})
-await queryClient.refetchQueries({ queryKey: ["products"] })
+  const {mutate:deleteProduct,isPending:deletePending}=useDeleteProduct()
 
-  toast.success("Product deleted successfully !!!")},
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: updateProduct,
-   onSuccess: async() =>{ await queryClient.invalidateQueries({ queryKey: ["products"] })
-await queryClient.refetchQueries({ queryKey: ["products"] })
-
-  toast.success("Product Updated successfully !!!")},
-    onError: (error) => console.error(error),
-  })
+const {mutateAsync:updateProduct,isPending:updateProductLoading}=useUpdateProduct()
 
   const { register, handleSubmit, reset, control } = useForm({
     defaultValues: {
@@ -104,7 +70,7 @@ await queryClient.refetchQueries({ queryKey: ["products"] })
     data.categoryId = selectedProduct?.category_id
 
     
-    await updateMutation.mutateAsync(data)
+    await updateProduct(data)
     setSelectedProduct(null)
     reset()
     setImageFile(null)
@@ -119,16 +85,17 @@ await queryClient.refetchQueries({ queryKey: ["products"] })
     }
   }
 
-  const filteredProducts = products
+  const productsArray = Array.isArray(products) ? products : []
+  const filteredProducts = productsArray
     .filter((p: any) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.tagline.toLowerCase().includes(searchQuery.toLowerCase())
+      (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.tagline || "").toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a: any, b: any) =>
       sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     )
 
-  if (deleteMutation.isPending || updateMutation.isPending) {
+  if (deletePending || updateProductLoading) {
     return <Loader />
   }
 
@@ -139,6 +106,8 @@ await queryClient.refetchQueries({ queryKey: ["products"] })
           <CardTitle className="text-2xl font-bold text-primary">All Products</CardTitle>
         </CardHeader>
         <CardContent>
+                         <CategoryItem setCategoryId={setCategoryId} a={categoryId} />
+
           <div className="flex items-center gap-4 mb-4">
             <Input
               placeholder="Search by name or tagline..."
@@ -192,7 +161,7 @@ await queryClient.refetchQueries({ queryKey: ["products"] })
                         className="mt-4 w-full"
                         onClick={() => {
                           if (window.confirm("Are you sure you want to delete this product?")) {
-                            deleteMutation.mutate(product.id)
+                            deleteProduct(product.id)
                           }
                         }}
                       >
@@ -284,7 +253,7 @@ await queryClient.refetchQueries({ queryKey: ["products"] })
                                 <Label>Sizes</Label>
                                 {fields.map((field, index) => (
                                   <div key={field.id} className="flex flex-wrap gap-2">
-                                    <div className="flex-1 min-w-[80px]">
+                                    <div className="flex-1 min-w-20">
                                       <Label htmlFor={`sizes.${index}.size`}>Size</Label>
                                       <Input
                                         id={`sizes.${index}.size`}
@@ -292,7 +261,7 @@ await queryClient.refetchQueries({ queryKey: ["products"] })
                                         {...register(`sizes.${index}.size`, { required: true })}
                                       />
                                     </div>
-                                    <div className="flex-1 min-w-[80px]">
+                                    <div className="flex-1 min-w-20">
                                       <Label htmlFor={`sizes.${index}.option`}>Unit</Label>
                                       <select
                                         id={`sizes.${index}.option`}
@@ -345,8 +314,8 @@ await queryClient.refetchQueries({ queryKey: ["products"] })
                                 </Button>
                               </div>
 
-                              <Button type="submit" className="w-full mt-4" disabled={updateMutation.isPending}>
-                                {updateMutation.isPending ? "Updating..." : "Update Product"}
+                              <Button type="submit" className="w-full mt-4" disabled={updateProductLoading}>
+                                {updateProductLoading? "Updating..." : "Update Product"}
                               </Button>
                             </form>
                           </ScrollArea>

@@ -1,9 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import axios from "axios"
 import { useForm, useFieldArray } from "react-hook-form"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {  useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,11 +10,9 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import Image from "next/image"
-import { toast } from "react-toastify"
 import { Textarea } from "@/components/ui/textarea"
-import { addProductWithImageAction } from "@/actions/products/add-product-with-image"
+import { useAddProduct, useAllcategories } from "./hooks"
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND
 
 export default function AddProductPage() {
   const [preview, setPreview] = useState<string | null>(null)
@@ -23,13 +20,7 @@ export default function AddProductPage() {
 
   const variantOptions = ["Kg", "Gram", "Litre", "ml", "Piece", "Dozen"]
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => {
-      const res = await axios.get(`https://api.apnifarming.com/user/categories/getAllCategories.php`)
-      return res.data
-    },
-  })
+  const { data: categories = [] } = useAllcategories();
 
   const { register, handleSubmit, setValue, getValues, control, reset } = useForm({
     defaultValues: {
@@ -59,23 +50,7 @@ export default function AddProductPage() {
   })
   const queryClient=useQueryClient();
 
-  const mutation = useMutation({
-  
-   mutationFn: async (data:any) => {
-         await addProductWithImageAction(data)
-        
-    },
-    onSuccess: () => {
-      toast.success("Product uploaded successfully!");
-      queryClient.invalidateQueries({queryKey:['products']});  
-      reset()
-      setPreview(null)
-      router.replace("/all-products")
-    },
-    onError: (err: any) => {
-      alert("Upload failed: " + (err.response?.data?.message || err.message))
-    },
-  })
+  const {mutate,isPending}=useAddProduct()
 
   const handleImageUpload = (e: any) => {
     const file = e.target.files[0]
@@ -95,7 +70,7 @@ export default function AddProductPage() {
           <CardTitle className="text-2xl font-bold text-primary">Upload Product</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+          <form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-4">
             <div>
               <label>Title</label>
               <Input {...register("title", { required: true })} placeholder="Product Title" />
@@ -251,8 +226,8 @@ export default function AddProductPage() {
               </Button>
             </div>
 
-            <Button type="submit" className="w-full" disabled={mutation.isPending}>
-              {mutation.isPending ? "Submitting..." : "Submit"}
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? "Submitting..." : "Submit"}
             </Button>
           </form>
         </CardContent>

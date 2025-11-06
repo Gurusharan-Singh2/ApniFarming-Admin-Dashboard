@@ -62,7 +62,7 @@ const Products = ({ a }: ProductsProps) => {
   } = useQuery<Product[]>({
     queryKey: ['products', a],
     queryFn: fetchProducts,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 20,
   });
 
   // Search products
