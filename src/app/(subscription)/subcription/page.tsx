@@ -2,7 +2,7 @@
 import React from 'react'
 import { useAllSubscription } from './hooks'
 
-const page = () => {
+const Page = () => {
 
 
   const {data}=useAllSubscription();
@@ -15,4 +15,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page
