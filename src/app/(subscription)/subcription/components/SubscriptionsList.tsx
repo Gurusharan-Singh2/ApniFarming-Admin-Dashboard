@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import {
   Card,
@@ -17,54 +17,39 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCancelSubscription, useSubscriptionItems } from "../hooks";
 
-interface Subscription {
-  id: number;
-  user_id: number;
-  first_name: string;
-  phone: string;
-  frequency: string;
-  start_date: string | Date;
-  billing_days: number;
-  next_order_date: string | Date;
-  address_title: string;
-  street_address: string;
-  city: string;
-  state: string;
-  pincode: string | number;
-  landmark?: string;
-  status: number;
-}
-
-interface Props {
-  data: Subscription[];
-}
-
-export default function SubscriptionsList({ data }: Props) {
-  if (!data || data.length === 0)
-    return (
-      <p className="text-sm text-muted-foreground text-center mt-8">
-        No subscriptions found.
-      </p>
-    );
-
-  return (
-    <div className="space-y-2.5">
-      {data.map((sub, index) => (
-        <SubscriptionCard
-          key={`${sub.id}-${sub.user_id}-${index}`}
-          sub={sub}
-        />
-      ))}
-    </div>
-  );
-}
-
-function SubscriptionCard({ sub }: { sub: Subscription }) {
+export default function SubscriptionCard({ sub }: { sub: any }) {
   const [openItems, setOpenItems] = useState(false);
+  const [openSkips, setOpenSkips] = useState(false);
+  const [openCancel, setOpenCancel] = useState(false);
+
+  const {
+    data: subscriptionItems = [],
+    isPending,
+    refetch,
+    isFetched,
+  } = useSubscriptionItems(sub?.id, { enabled: false }) as {
+    data: any[];
+    isPending: boolean;
+    refetch: () => void;
+    isFetched: boolean;
+  };
+
+  const {mutate:CancelMutate,isPending:cancelPending} =useCancelSubscription(setOpenCancel);
+
+  const handleCancelSubscription=()=>{
+    CancelMutate(Number(sub.subscription_id));
+  }
+
+  useEffect(() => {
+    if (openItems && !isFetched) {
+      refetch();
+    }
+  }, [openItems, isFetched, refetch]);
 
   const statusColor =
-    sub.status === 1
+    sub?.status === 'active'
       ? "bg-green-500/90 text-white"
       : "bg-red-500/80 text-white";
 
@@ -73,44 +58,38 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
       <CardHeader className="pb-1 flex flex-row items-center justify-between">
         <div className="flex flex-col gap-0.5">
           <CardTitle className="text-sm font-semibold leading-tight">
-            {sub.first_name}
+            {sub?.first_name}
           </CardTitle>
           <p className="text-[11px] text-muted-foreground">
-            Phone: {sub.phone}
+            Phone: {sub?.phone}
           </p>
         </div>
         <Badge className={`text-[10px] px-2 py-0.5 ${statusColor}`}>
-          {sub.status === 1 ? "Active" : "Inactive"}
+          {sub?.status == 'active' ? "Active" : "Inactive"}
         </Badge>
       </CardHeader>
 
-      <CardContent className="pt-1 space-y-1.5">
+      <CardContent className="pt-1 space-y-2">
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-1">
-          <Info label="Frequency" value={sub.frequency} />
-          <Info label="Billing Days" value={sub.billing_days} />
+          <Info label="Frequency" value={sub?.frequency} />
+          <Info label="Billing Days" value={sub?.billing_days} />
           <Info
             label="Start Date"
-            value={dayjs(sub.start_date).format("DD MMM YYYY")}
+            value={dayjs(sub?.start_date).format("DD MMM YYYY")}
           />
           <Info
             label="Next Order"
-            value={dayjs(sub.next_order_date).format("DD MMM YYYY")}
+            value={dayjs(sub?.next_order_date).format("DD MMM YYYY")}
           />
-          <Info
-            label="Address"
-            value={`${sub.street_address}, ${sub.city}`}
-          />
-          <Info label="Pincode" value={sub.pincode} />
+          <Info label="Address" value={`${sub?.street_address}, ${sub?.city}`} />
+          <Info label="Pincode" value={sub?.pincode} />
         </div>
 
-        <div className="flex justify-end mt-1">
+        <div className="flex justify-end gap-2 mt-2">
+         
           <Dialog open={openItems} onOpenChange={setOpenItems}>
             <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-3 text-[11px]"
-              >
+              <Button variant="outline" size="sm" className="h-7 px-3 text-[11px]">
                 View Items
               </Button>
             </DialogTrigger>
@@ -121,9 +100,88 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
                 </DialogTitle>
               </DialogHeader>
               <ScrollArea className="max-h-[60vh]">
-                {/* TODO: map subscription items when available */}
+                {isPending ? (
+                  <div className="py-4 text-sm text-muted-foreground text-center">
+                    Loading items...
+                  </div>
+                ) : subscriptionItems.length > 0 ? (
+                  <div className="space-y-2 py-2">
+                    {subscriptionItems.map((item: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between border-b border-muted/40 py-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-10 h-10 rounded-md object-cover"
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">{item.name}</span>
+                            <span className="text-[11px] text-muted-foreground">
+                                ₹{item.cost}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="text-xs text-muted-foreground">
+                          Qty: {item.quantity } {item.option}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-4 text-sm text-muted-foreground text-center">
+                    No items found.
+                  </div>
+                )}
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+
+          {/* Skips Dialog */}
+          <Dialog open={openSkips} onOpenChange={setOpenSkips}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="h-7 px-3 text-[11px]">
+                View Skips
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-base font-semibold">
+                  Skipped Dates
+                </DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="max-h-[60vh]">
                 <div className="py-4 text-sm text-muted-foreground text-center">
-                  Items data coming soon...
+                  Skips data coming soon...
+                </div>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+
+
+          {/* Cancelled Subscription  */}
+           <Dialog open={openCancel} onOpenChange={setOpenCancel}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" size="sm"  className="h-7 px-3 text-[11px] ">
+              Cancel Subscription
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-base font-semibold">
+                  Cancel Subscription
+                </DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="max-h-[60vh]">
+                <div className="py-4 text-sm text-muted-foreground text-center">
+                <h2>Do you want to Cancel This Subscription ? </h2>
+                <div className="flex-1 w-full flex justify-center items-center gap-4 mt-4">
+                  <Button variant="destructive" size="sm"  className="h-7 px-3 text-[11px]" onClick={handleCancelSubscription}>Yes</Button>
+                  <Button variant="outline" size="sm"  className="h-7 px-3 text-[11px]">No</Button>
+                </div>
                 </div>
               </ScrollArea>
             </DialogContent>

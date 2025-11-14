@@ -55,6 +55,9 @@ export default function OrdersComponent() {
   const orders = data?.orders ?? [];
   const totalPages = data?.totalPages ?? 1;
 
+  console.log(orders);
+  
+
   const Ordermutation = useOrderMutation(setSelectedOrders);
 
   const PaymentMutation = usePaymentMutaion();

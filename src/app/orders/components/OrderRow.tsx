@@ -56,12 +56,12 @@ const OrderRow = React.memo(function OrderRow({
   const received = parseFloat(order.totalReceivedAmount) || 0;
   const pending = Math.max(totalPrice - received, 0);
 
-  console.log(order);
+  console.log("Orders",order);
   
 
   return (
-    <Card className="p-3 w-full transition-all duration-200 hover:shadow-sm border-muted/40 rounded-lg">
-      <CardHeader className="flex flex-row items-start justify-between pb-1 space-y-0">
+    <Card className="p-3 w-full transition-all relative duration-200 hover:shadow-sm border-muted/40 rounded-lg">
+      <CardHeader className="flex  flex-row items-start justify-between pb-1 space-y-0">
         <div className="flex items-start gap-3">
           <Checkbox
             checked={selected}
@@ -99,8 +99,15 @@ const OrderRow = React.memo(function OrderRow({
           <Info label="Pending" value={`₹${pending}`} highlight />
           <Info
             label="Delivery"
-            value={`${dayjs(order.deliveryFromTime, ["HH:mm:ss", "hh:mm A"]).format("hh:mm A")} - ${dayjs(order.deliveryToTime, ["HH:mm:ss", "hh:mm A"]).format("hh:mm A")}`}
+                       value={`${dayjs(order.deliveryFromTime, ["HH:mm:ss", "hh:mm A"]).format("hh:mm A")} - ${dayjs(order.deliveryToTime, ["HH:mm:ss", "hh:mm A"]).format("hh:mm A")}`}
+
           />
+          <Info
+            label="Delivery Date"
+            value={order.deliveryDate ? dayjs(order.deliveryDate).format("DD MMM YYYY") : "—"}
+          />
+                 
+
         </div>
 
         <div className="flex flex-wrap items-center gap-2 mt-1.5">
@@ -174,7 +181,17 @@ const OrderRow = React.memo(function OrderRow({
             </DialogContent>
           </Dialog>
         </div>
+        
       </CardContent>
+       <div className={`flex absolute bottom-1 right-1  gap-1 p-2 w-fit ${order.paymentMethod==="COD"?"bg-blue-500":" bg-red-500"}    text-white rounded-full`}>
+                    <h2 className="text-[11px] font-bold ">
+                      Order Type =
+                    </h2>
+                    <h4 className="text-[11px] font-semibold">
+                      {order.paymentMethod==="COD"?"Normal Order":" Subscription Order"}  
+                    </h4>
+                    
+                  </div>
     </Card>
   );
 });
