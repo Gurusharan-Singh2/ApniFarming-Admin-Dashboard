@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+  
 }
 
 model Notification_Tokens {
@@ -234,7 +235,7 @@ model product_variants {
   product_id BigInt    @db.UnsignedBigInt
   mrp_price  Float
   sell_price Float
-  in_stock   Int       @db.TinyInt
+  in_stock   Int?       @db.TinyInt
   max_order  Int?
   created_at DateTime? @db.Timestamp(0)
   updated_at DateTime? @db.Timestamp(0)

@@ -18,6 +18,7 @@ import Image from "next/image"
 import { Loader } from "@/components/Loader"
 import { useAllProduct, useDeleteProduct, useUpdateProduct } from "./hooks"
 import CategoryItem from "@/components/ItemCategory"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 
 
@@ -32,16 +33,19 @@ export default function AllProductsPage() {
   
 
   const { data: products = [], isLoading } =useAllProduct(categoryId);
+  
+  
 
   const {mutate:deleteProduct,isPending:deletePending}=useDeleteProduct()
 
 const {mutateAsync:updateProduct,isPending:updateProductLoading}=useUpdateProduct()
 
-  const { register, handleSubmit, reset, control } = useForm({
+  const { register, handleSubmit, reset, control,setValue } = useForm({
     defaultValues: {
       title: "",
       tagline: "",
       description: "",
+      in_Stock:true,
       sizes: [{ size: "", option: "", costPrice: 0, sellPrice: 0, maxOrder: null }],
       categoryId: "",
     },
@@ -95,6 +99,12 @@ const {mutateAsync:updateProduct,isPending:updateProductLoading}=useUpdateProduc
       sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     )
 
+   
+    
+
+    
+    
+
   if (deletePending || updateProductLoading) {
     return <Loader />
   }
@@ -128,6 +138,7 @@ const {mutateAsync:updateProduct,isPending:updateProductLoading}=useUpdateProduc
             <ScrollArea className="min-h-screen">
               <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {filteredProducts.map((product: any) => (
+                  
                   <div key={product.id} className="relative">
                     <Card className="p-4 rounded-xl border border-muted shadow hover:shadow-lg transition duration-300 flex flex-col justify-between gap-3.5 min-h-[400px]">
                       <Image
@@ -137,7 +148,22 @@ const {mutateAsync:updateProduct,isPending:updateProductLoading}=useUpdateProduc
                         alt={product.name}
                         className="w-full h-full object-cover rounded-lg mb-3"
                       />
-                      <CardTitle className="text-xl font-semibold mb-1 truncate">{product.name}</CardTitle>
+                    
+                       <CardTitle className="text-xl font-semibold mb-1 truncate">{product.name}</CardTitle>
+                       
+                  
+                  <div
+  className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm font-medium
+      ${product.in_stock ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}
+  `}
+>
+  <span>
+    {product.in_stock ? "✔️" : "❌"}
+  </span>
+  <span>{product.in_stock ? "In Stock" : "Out of Stock"}</span>
+</div>
+
+                     
                       <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.tagline}</p>
                       <div className="text-sm space-y-1">
                         {product.sizes?.length ? (
@@ -182,6 +208,7 @@ const {mutateAsync:updateProduct,isPending:updateProductLoading}=useUpdateProduc
                                 title: product.name,
                                 tagline: product.tagline,
                                 description: product.description || "",
+                                in_Stock:product.in_stock ?? true,
                                 sizes: (product.sizes || []).map((s: any) => ({
                                   size: s.size || "",
                                   option: s.option?.toLowerCase() || "",
@@ -219,6 +246,26 @@ const {mutateAsync:updateProduct,isPending:updateProductLoading}=useUpdateProduc
                                   rows={3}
                                 />
                               </div>
+                    <div className="flex flex-col">
+  <Label>Stock</Label>
+
+  <Select
+    onValueChange={(val) => setValue("in_Stock", val === "true")}
+    defaultValue={selectedProduct?.in_stock ? "true" : "false"}
+  >
+    <SelectTrigger className="w-32">
+      <SelectValue placeholder="Select Stock" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="true">In Stock</SelectItem>
+      <SelectItem value="false">Out of Stock</SelectItem>
+    </SelectContent>
+  </Select>
+
+  {/* RHF Hidden Sync Field */}
+  <input type="hidden" {...register("in_Stock")} />
+</div>
+
 
                               {previewUrl ? (
                                 <div>

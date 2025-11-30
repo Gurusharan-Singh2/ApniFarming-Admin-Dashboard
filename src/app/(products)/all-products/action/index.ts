@@ -165,7 +165,8 @@ export async function editProductWithImageAction(data: ProductInput) {
     in_Stock,
     Sort_order,
   } = data;
-  
+
+    
   
 
   if (!id) throw new Error("Product ID is required");

@@ -60,7 +60,7 @@ export default function AllCouponsPage() {
     onError: () => toast.error('Failed to update coupon')
   })
 
-  // Change status mutation
+  
   const changeStatus = useMutation({
     mutationFn: async (data: { id: number, status: 0 | 1 }) =>
       axios.post('https://api.apnifarming.com/user/admin/changecouponstatus.php', data),
